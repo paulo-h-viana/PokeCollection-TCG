@@ -1,0 +1,36 @@
+@page "/"
+@using Microsoft.EntityFrameworkCore
+@inject PokeCollection.Data.AppDbContext Db
+
+<h3>Dashboard</h3>
+
+<p>Total de Coleções: @totalSets</p>
+<p>Total de Cartas: @totalCards</p>
+
+<h4>Progresso por Coleção</h4>
+@foreach(var s in progress){
+    <p>@s.Name - @s.Owned / @s.Total cartas</p>
+    <progress value="@s.Owned" max="@s.Total"></progress>
+}
+
+
+@code {
+    private int totalSets;
+    private int totalCards;
+
+    protected override async Task OnInitializedAsync()
+    {
+        totalSets = await Db.Sets.CountAsync();
+        totalCards = await Db.Cards.CountAsync();
+        progress = await Db.Sets
+        .OrderBy(s => s.Name)
+        .Select(s => new SetProgress(s.Name,
+        s.Cards.Count,
+        s.Cards.Count(c => c.Owned)
+        ))
+        .ToListAsync();
+    }
+
+    private record SetProgress(string Name, int Total, int Owned);
+    private List<SetProgress> progress = new();
+}
