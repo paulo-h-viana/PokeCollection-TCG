@@ -1,0 +1,95 @@
+@page "/sets"
+@using Microsoft.EntityFrameworkCore
+@using PokeCollection.Data.Models
+@inject PokeCollection.Data.AppDbContext Db
+@inject PokeCollection.Services.PokemonApiService Api
+
+<h3>Coleções</h3>
+
+<button class="btn btn-primary" @onclick="SyncSets" disabled="@isSyncing">
+    @(isSyncing ? "Sincronizando..." : "Sincronizar coleções")
+</button>
+
+@if (!string.IsNullOrWhiteSpace(syncMessage))
+{
+    <pre style="margin-top:12px; white-space:pre-wrap;">@syncMessage</pre>
+}
+
+@if (sets is null)
+{
+    <p>Carregando...</p>
+}
+else if (sets.Count == 0)
+{
+    <p>Nenhuma coleção encontrada.</p>
+}
+else
+{
+    <ul>
+        @foreach (var s in sets)
+        {
+            <li>
+                <a href="/cards/@s.Id">@s.Name</a>
+                <small> (@s.Series)</small>
+            </li>
+        }
+    </ul>
+}
+
+@code {
+    private List<PokemonSet>? sets;
+
+    private bool isSyncing = false;
+    private string? syncMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        sets = await Db.Sets.AsNoTracking()
+            .OrderBy(s => s.Name)
+            .ToListAsync();
+    }
+
+    private async Task SyncSets()
+    {
+        isSyncing = true;
+        syncMessage = null;
+
+        try
+        {
+            var (ok, message, apiSets) = await Api.GetSetsAsync();
+            syncMessage = message;
+
+            if (!ok) return;
+
+            foreach (var s in apiSets)
+            {
+                var exists = await Db.Sets.AnyAsync(x => x.ExternalId == s.id);
+                if (!exists)
+                {
+                    Db.Sets.Add(new PokemonSet
+{
+    ExternalId = s.id,
+    Name = s.name,
+    Series = string.IsNullOrWhiteSpace(s.serie) ? "" : s.serie
+});
+                }
+            }
+
+            await Db.SaveChangesAsync();
+
+            sets = await Db.Sets.AsNoTracking()
+                .OrderBy(x => x.Name)
+                .ToListAsync();
+
+            syncMessage += $"\nSalvo no SQLite. Total no banco: {sets.Count}";
+        }
+        catch (Exception ex)
+        {
+            syncMessage = "Erro ao sincronizar: " + ex.Message;
+        }
+        finally
+        {
+            isSyncing = false;
+        }
+    }
+}
