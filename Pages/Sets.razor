@@ -1,6 +1,8 @@
 @page "/sets"
 @using Microsoft.EntityFrameworkCore
 @using PokeCollection.Data.Models
+@using System.Security.Cryptography.X509Certificates
+@using System.Drawing.Text
 @inject PokeCollection.Data.AppDbContext Db
 @inject PokeCollection.Services.PokemonApiService Api
 
@@ -28,7 +30,16 @@ else
     <ul>
         @foreach (var s in sets)
         {
+            var logoUrl = string.IsNullOrWhiteSpace(s.Logo) ? "" : s.Logo.TrimEnd('/') + ".webp";
             <li>
+                @if (string.IsNullOrWhiteSpace(logoUrl))
+                {
+                    <img src="/images/sets/@(s.ExternalId).png" style="height: 60px;" onerror="this.style.display='none'" />
+                }
+                else
+                {
+                    <img src="/images/sets/@(s.ExternalId).png" style="height: 60px;" onerror="this.onerror=null;this.src='@logoUrl'" />
+                }
                 <a href="/cards/@s.Id">@s.Name</a>
                 <small> (@s.Series)</small>
             </li>
@@ -37,6 +48,7 @@ else
 }
 
 @code {
+
     private List<PokemonSet>? sets;
 
     private bool isSyncing = false;
@@ -67,11 +79,11 @@ else
                 if (!exists)
                 {
                     Db.Sets.Add(new PokemonSet
-{
-    ExternalId = s.id,
-    Name = s.name,
-    Series = string.IsNullOrWhiteSpace(s.serie) ? "" : s.serie
-});
+                    {
+                        ExternalId = s.id,
+                        Name = s.name,
+                        Series = string.IsNullOrWhiteSpace(s.serie) ? "" : s.serie
+                    });
                 }
             }
 

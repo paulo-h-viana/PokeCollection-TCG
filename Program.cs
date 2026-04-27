@@ -24,6 +24,28 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
+
+    var api = scope.ServiceProvider.GetRequiredService<PokemonApiService>();
+    var(ok, _, apiSets) = await api.GetSetsAsync();
+
+    if (ok)
+    {
+        var existingIds = db.Sets.Select(s => s.ExternalId).ToHashSet();
+        foreach(var s in apiSets)
+        {
+            if(existingIds.Contains(s.id)) continue;
+            db.Sets.Add(new PokeCollection.Data.Models.PokemonSet
+            {
+                ExternalId = s.id,
+                Name = s.name,
+                Series = s.serie,
+                TotalCards = s.cardCount.total,
+                Symbol = s.symbol,
+                Logo = s.logo
+            });
+        }
+        await db.SaveChangesAsync();
+    }
 }
 
 await app.StartAsync();

@@ -9,72 +9,70 @@ public class PokemonApiService
     public PokemonApiService(HttpClient http) => _http = http;
 
     // ===== Helpers (ficam DENTRO da classe) =====
-    
+
     public static string ExtractFinalImageUrlFromDetails(CardDetailsDto? d)
-{
-    if (d is null) return "";
-
-    // 1) images.small/large como string
-    if (d.images.ValueKind == JsonValueKind.Object)
     {
-        if (d.images.TryGetProperty("small", out var small) && small.ValueKind == JsonValueKind.String)
-            return NormalizeUrl(small.GetString());
+        if (d is null) return "";
 
-        if (d.images.TryGetProperty("large", out var large) && large.ValueKind == JsonValueKind.String)
-            return NormalizeUrl(large.GetString());
-    }
-
-    // 2) image como string
-    if (d.image.ValueKind == JsonValueKind.String)
-        return NormalizeUrl(d.image.GetString());
-
-    // 3) image como objeto asset (fallback genérico)
-    // Alguns retornos podem ter algo como { "path": ".../assets/..." } ou similar.
-    if (d.image.ValueKind == JsonValueKind.Object)
-    {
-        // tenta "url"
-        if (d.image.TryGetProperty("url", out var url) && url.ValueKind == JsonValueKind.String)
-            return NormalizeUrl(url.GetString());
-
-        // tenta "path"
-        if (d.image.TryGetProperty("path", out var path) && path.ValueKind == JsonValueKind.String)
+        // 1) images.small/large como string
+        if (d.images.ValueKind == JsonValueKind.Object)
         {
-            var p = path.GetString() ?? "";
-            // tenta assumir png (se for um caminho de asset sem extensão)
-            if (!string.IsNullOrWhiteSpace(p) && !p.EndsWith(".png") && !p.EndsWith(".webp") && !p.EndsWith(".jpg") && !p.EndsWith(".jpeg"))
-                p += ".png";
+            if (d.images.TryGetProperty("small", out var small) && small.ValueKind == JsonValueKind.String)
+                return NormalizeUrl(small.GetString());
 
-            return NormalizeUrl(p);
+            if (d.images.TryGetProperty("large", out var large) && large.ValueKind == JsonValueKind.String)
+                return NormalizeUrl(large.GetString());
         }
-    }
 
-    return "";
-}
+        // 2) image como string
+        if (d.image.ValueKind == JsonValueKind.String)
+            return NormalizeUrl(d.image.GetString());
+
+        if (d.image.ValueKind == JsonValueKind.Object)
+        {
+            // tenta "url"
+            if (d.image.TryGetProperty("url", out var url) && url.ValueKind == JsonValueKind.String)
+                return NormalizeUrl(url.GetString());
+
+            // tenta "path"
+            if (d.image.TryGetProperty("path", out var path) && path.ValueKind == JsonValueKind.String)
+            {
+                var p = path.GetString() ?? "";
+                // tenta assumir png (se for um caminho de asset sem extensão)
+                if (!string.IsNullOrWhiteSpace(p) && !p.EndsWith(".png") && !p.EndsWith(".webp") && !p.EndsWith(".jpg") && !p.EndsWith(".jpeg"))
+                    p += ".png";
+
+                return NormalizeUrl(p);
+            }
+        }
+
+        return "";
+    }
 
     public async Task<(bool ok, string message, CardDetailsDto? card)> GetCardDetailsAsync(string cardId)
-{
-    var url = $"https://api.tcgdex.net/v2/pt/cards/{cardId}";
-
-    try
     {
-        using var resp = await _http.GetAsync(url);
-        var body = await resp.Content.ReadAsStringAsync();
+        var url = $"https://api.tcgdex.net/v2/pt/cards/{cardId}";
 
-        if (!resp.IsSuccessStatusCode)
-            return (false, $"Erro card details\nURL: {url}\nHTTP {(int)resp.StatusCode} - {resp.ReasonPhrase}\n\nBODY:\n{body}", null);
-
-        var card = JsonSerializer.Deserialize<CardDetailsDto>(body, new JsonSerializerOptions
+        try
         {
-            PropertyNameCaseInsensitive = true
-        });
+            using var resp = await _http.GetAsync(url);
+            var body = await resp.Content.ReadAsStringAsync();
 
-        return (true, "OK", card);
+            if (!resp.IsSuccessStatusCode)
+                return (false, $"Erro card details\nURL: {url}\nHTTP {(int)resp.StatusCode} - {resp.ReasonPhrase}\n\nBODY:\n{body}", null);
+
+            var card = JsonSerializer.Deserialize<CardDetailsDto>(body, new JsonSerializerOptions
+            {
+                PropertyNameCaseInsensitive = true
+            });
+
+            return (true, "OK", card);
+        }
+        catch (Exception ex)
+        {
+            return (false, $"Falha ao buscar detalhes da carta {cardId}: {ex.Message}", null);
+        }
     }
-    catch (Exception ex)
-    {
-        return (false, $"Falha ao buscar detalhes da carta {cardId}: {ex.Message}", null);
-    }
-}
 
 
     private static string NormalizeUrl(string? url)
@@ -140,7 +138,7 @@ public class PokemonApiService
         }
     }
 
-    
+
 
     // ===== DTOs =====
     public class SetDto
@@ -148,24 +146,32 @@ public class PokemonApiService
         public string id { get; set; } = "";
         public string name { get; set; } = "";
         public string serie { get; set; } = "";
+        public string symbol { get; set; } = "";
+        public string logo {get ;set;} = "";
+
+        public CardCountDto cardCount { get; set; } = new();
+
+        public class CardCountDto
+        {
+            public int total { get; set; }
+        }
     }
 
     public class CardDetailsDto
-{
-    public string id { get; set; } = "";
-    public string name { get; set; } = "";
+    {
+        public string id { get; set; } = "";
+        public string name { get; set; } = "";
 
-    // A TCGdex pode retornar assets como objeto.
-    // Vamos manter cru e extrair depois.
-    public JsonElement image { get; set; }
-    public JsonElement images { get; set; }
-}
+        public JsonElement image { get; set; }
+        public JsonElement images { get; set; }
+    }
 
     public class SetDetailsDto
     {
         public string id { get; set; } = "";
         public string name { get; set; } = "";
         public JsonElement serie { get; set; }
+
         public List<CardListItemDto> cards { get; set; } = new();
     }
 
@@ -180,5 +186,5 @@ public class PokemonApiService
         public JsonElement images { get; set; }
     }
 
-    
+
 }
