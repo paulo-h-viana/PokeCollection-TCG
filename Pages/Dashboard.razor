@@ -6,6 +6,7 @@
 
 <p>Total de Coleções: @totalSets</p>
 <p>Total de Cartas: @totalCards</p>
+<p>Total Adquirido: @totalOwned</p>
 
 <h4>Progresso por Coleção</h4>
 @foreach(var s in progress){
@@ -17,15 +18,17 @@
 @code {
     private int totalSets;
     private int totalCards;
+    private int totalOwned;
 
     protected override async Task OnInitializedAsync()
     {
         totalSets = await Db.Sets.CountAsync();
-        totalCards = await Db.Cards.CountAsync();
+        totalCards = await Db.Sets.SumAsync(s => s.TotalCards);
+        totalOwned = await Db.Cards.CountAsync(s => s.Owned);
         progress = await Db.Sets
         .OrderBy(s => s.Name)
         .Select(s => new SetProgress(s.Name,
-        s.Cards.Count,
+        s.TotalCards,
         s.Cards.Count(c => c.Owned)
         ))
         .ToListAsync();
