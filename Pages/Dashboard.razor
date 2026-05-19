@@ -1,21 +1,56 @@
 @page "/"
 @using Microsoft.EntityFrameworkCore
 @inject PokeCollection.Data.AppDbContext Db
+@inject IJSRuntime JS
 
-<h3>Dashboard</h3>
+ <div class="dash-header">
+      <h2 class="dash-title">PokeCollection</h2>
+      <button class="btn btn-outline-secondary btn-sm" @onclick="ToggleDarkMode">
+          @(isDark ? "☀️  Modo Claro" : "🌙 Modo Escuro")
+      </button>
+  </div>
 
-<p>Total de Coleções: @totalSets</p>
-<p>Total de Cartas: @totalCards</p>
-<p>Total Adquirido: @totalOwned</p>
+  <div class="stats-row">
+      <div class="stat-card stat-blue">
+          <div class="stat-icon">📦</div>
+          <div class="stat-value">@totalSets</div>
+          <div class="stat-label">Coleções</div>
+      </div>
+      <div class="stat-card stat-yellow">
+          <div class="stat-icon">🃏</div>
+          <div class="stat-value">@totalCards</div>
+          <div class="stat-label">Total de Cartas</div>
+      </div>
+      <div class="stat-card stat-red">
+          <div class="stat-icon">✅</div>
+          <div class="stat-value">@totalOwned</div>
+          <div class="stat-label">Adquiridas</div>
+      </div>
+  </div>
 
-<h4>Progresso por Coleção</h4>
-@foreach(var s in progress){
-    <p>@s.Name - @s.Owned / @s.Total cartas</p>
-    <progress value="@s.Owned" max="@s.Total"></progress>
-}
+  <h4 class="section-title">Progresso por Coleção</h4>
+
+  <div class="progress-list">
+      @foreach (var s in progress)
+      {
+          var pct = s.Total > 0 ? (int)((double)s.Owned / s.Total * 100) : 0;
+          var barClass = pct >= 75 ? "bar-green" : pct >= 25 ? "bar-yellow" : "bar-red";
+
+          <div class="progress-card">
+              <div class="progress-info">
+                  <span class="progress-name">@s.Name</span>
+                  <span class="progress-count">@s.Owned / @s.Total (@pct%)</span>
+              </div>
+              <div class="progress-track">
+                  <div class="progress-fill @barClass" style="width: @pct%"></div>
+              </div>
+          </div>
+      }
+  </div>
 
 
 @code {
+    private bool isDark = false;
     private int totalSets;
     private int totalCards;
     private int totalOwned;
@@ -32,6 +67,20 @@
         s.Cards.Count(c => c.Owned)
         ))
         .ToListAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            isDark = await JS.InvokeAsync<bool>("darkMode.get");
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleDarkMode()
+    {
+        isDark = await JS.InvokeAsync<bool>("darkMode.toggle");
     }
 
     private record SetProgress(string Name, int Total, int Owned);

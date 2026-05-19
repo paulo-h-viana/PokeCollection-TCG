@@ -31,44 +31,36 @@ else
     }
     else
     {
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Tenho</th>
-                    <th>Nome</th>
-                    <th>Nº</th>
-                    <th>Raridade</th>
-                    <th>Imagem</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var c in cards)
-                {
-                    <tr>
-                        <td>
-                            <input type="checkbox" checked="@c.Owned"
-                                   @onchange="(e) => ToggleOwned(c.Id, (bool)e.Value!)" />
-                        </td>
-                        <td>@c.Name</td>
-                        <td>@c.Number</td>
-                        <td>@c.Rarity</td>
-                     <td>
-  @if (string.IsNullOrWhiteSpace(c.ImageSmallUrl))
-  {
-      <small style="color:#b00;">(sem imagem)</small>
-  }
-  else
-  {
-      var finalUrl = BuildCardImageUrl(c.ImageSmallUrl, "low", "webp");
-      <a href="@BuildCardImageUrl(c.ImageSmallUrl, "high", "webp")" target="_blank">abrir</a>
-      <img src="@finalUrl" style="height:64px" />
-  }
-</td>
-                        
-                    </tr>
-                }
-            </tbody>
-        </table>
+         <div class="cards-grid">
+      @foreach (var c in cards)
+      {
+          var finalUrl = BuildCardImageUrl(c.ImageSmallUrl, "low", "webp");
+
+          <div class="card-item @(c.Owned ? "owned" : "")"
+               @onclick="() => ToggleOwned(c.Id, !c.Owned)"
+               title="@c.Name">
+
+              @if (c.Owned)
+              {
+                  <span class="owned-badge">✓</span>
+              }
+
+              @if (string.IsNullOrWhiteSpace(c.ImageSmallUrl))
+              {
+                  <div class="no-image">@c.Name</div>
+              }
+              else
+              {
+                  <img src="@finalUrl" />
+              }
+
+              <div class="card-info">
+                  <span class="card-name">@c.Name</span>
+                  <span class="card-number">#@c.Number</span>
+              </div>
+          </div>
+      }
+  </div>
     }
 }
 

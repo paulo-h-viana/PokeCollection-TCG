@@ -8,8 +8,12 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <base href="~/" />
-    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css" />
-    <link href="css/site.css" rel="stylesheet" />
+    <script>
+        if (localStorage.getItem('darkMode') === 'true')
+            document.documentElement.classList.add('dark');
+    </script>
+    <link rel="stylesheet" href="css/bootstrap/bootstrap.min.css?v=2" />
+    <link href="css/site.css?v=2" rel="stylesheet" />
     <link href="PokeCollection.styles.css" rel="stylesheet" />
     <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
 </head>
@@ -28,5 +32,6 @@
     </div>
 
     <script src="_framework/blazor.server.js"></script>
+    <script src="js/darkmode.js"></script>
 </body>
 </html>
