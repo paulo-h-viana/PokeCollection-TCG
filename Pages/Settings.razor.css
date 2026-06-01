@@ -1,0 +1,121 @@
+.settings-header {
+    margin-bottom: 28px;
+}
+
+.settings-header h3 {
+    margin: 0;
+    font-weight: 700;
+}
+
+.settings-section {
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 24px;
+}
+
+.settings-section-title {
+    margin: 0 0 6px;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.settings-section-desc {
+    font-size: 0.85rem;
+    opacity: 0.65;
+    margin-bottom: 20px;
+}
+
+.settings-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.settings-action-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px 16px;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.07);
+}
+
+.settings-action-info {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.settings-action-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+}
+
+.settings-action-desc {
+    font-size: 0.78rem;
+    opacity: 0.6;
+}
+
+.settings-btn {
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: opacity 0.15s;
+    white-space: nowrap;
+}
+
+.settings-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.settings-btn-blue {
+    background: #1e90ff;
+    color: #fff;
+}
+
+.settings-btn-orange {
+    background: #e67e00;
+    color: #fff;
+}
+
+.settings-message {
+    margin-top: 16px;
+    padding: 10px 16px;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+}
+
+.settings-message-ok {
+    background: rgba(40, 167, 69, 0.15);
+    color: #1a7a33;
+}
+
+.settings-message-error {
+    background: rgba(220, 53, 69, 0.12);
+    color: #b31a2a;
+}
+
+html.dark .settings-section {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+html.dark .settings-action-card {
+    background: #16213e;
+    box-shadow: none;
+}
+
+html.dark .settings-message-ok {
+    color: #5fd87a;
+}
+
+html.dark .settings-message-error {
+    color: #ff6b7a;
+}

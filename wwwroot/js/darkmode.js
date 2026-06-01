@@ -1,4 +1,10 @@
 
+window.clipboardHelper = {
+    copy: function (text) {
+        return navigator.clipboard.writeText(text);
+    }
+};
+
 window.darkMode = {
     toggle: function () {
         const isDark = document.documentElement.classList.toggle('dark');

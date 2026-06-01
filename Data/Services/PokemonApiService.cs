@@ -112,7 +112,7 @@ public class PokemonApiService
         }
     }
 
-    public async Task<(bool ok, string message, List<CardListItemDto> cards)> GetCardsBySetAsync(string setId)
+    public async Task<(bool ok, string message, List<CardListItemDto> cards, int officialTotal)> GetCardsBySetAsync(string setId)
     {
         var url = $"https://api.tcgdex.net/v2/pt/sets/{setId}";
 
@@ -122,46 +122,46 @@ public class PokemonApiService
             var body = await resp.Content.ReadAsStringAsync();
 
             if (!resp.IsSuccessStatusCode)
-                return (false, $"Erro na API (TCGdex)\nURL: {url}\nHTTP {(int)resp.StatusCode} - {resp.ReasonPhrase}\n\nBODY:\n{body}", new());
+                return (false, $"Erro na API (TCGdex)\nURL: {url}\nHTTP {(int)resp.StatusCode} - {resp.ReasonPhrase}\n\nBODY:\n{body}", new(), 0);
 
-            var set = JsonSerializer.Deserialize<SetDetailsDto>(body, new JsonSerializerOptions
+            var setDto = JsonSerializer.Deserialize<SetDetailsDto>(body, new JsonSerializerOptions
             {
                 PropertyNameCaseInsensitive = true
             });
 
-            var cards = set?.cards ?? new List<CardListItemDto>();
-            return (true, $"OK (TCGdex). Cartas recebidas: {cards.Count}", cards);
+            var cards = setDto?.cards ?? new List<CardListItemDto>();
+            var officialTotal = setDto?.cardCount.official ?? 0;
+            return (true, $"OK (TCGdex). Cartas recebidas: {cards.Count}", cards, officialTotal);
         }
         catch (Exception ex)
         {
-            return (false, $"Falha ao buscar cartas do set {setId}: {ex.Message}", new());
+            return (false, $"Falha ao buscar cartas do set {setId}: {ex.Message}", new(), 0);
         }
     }
 
 
 
     // ===== DTOs =====
+    public class CardCountDto
+    {
+        public int total { get; set; }
+        public int official { get; set; }
+    }
+
     public class SetDto
     {
         public string id { get; set; } = "";
         public string name { get; set; } = "";
         public string serie { get; set; } = "";
         public string symbol { get; set; } = "";
-        public string logo {get ;set;} = "";
-
+        public string logo { get; set; } = "";
         public CardCountDto cardCount { get; set; } = new();
-
-        public class CardCountDto
-        {
-            public int total { get; set; }
-        }
     }
 
     public class CardDetailsDto
     {
         public string id { get; set; } = "";
         public string name { get; set; } = "";
-
         public JsonElement image { get; set; }
         public JsonElement images { get; set; }
     }
@@ -171,7 +171,7 @@ public class PokemonApiService
         public string id { get; set; } = "";
         public string name { get; set; } = "";
         public JsonElement serie { get; set; }
-
+        public CardCountDto cardCount { get; set; } = new();
         public List<CardListItemDto> cards { get; set; } = new();
     }
 
@@ -185,6 +185,5 @@ public class PokemonApiService
         public JsonElement image { get; set; }
         public JsonElement images { get; set; }
     }
-
 
 }

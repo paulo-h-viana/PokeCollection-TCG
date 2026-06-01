@@ -1,72 +1,147 @@
 @page "/"
 @using Microsoft.EntityFrameworkCore
+@using PokeCollection.Data.Models
 @inject PokeCollection.Data.AppDbContext Db
 @inject IJSRuntime JS
 
- <div class="dash-header">
-      <h2 class="dash-title">PokeCollection</h2>
-      <button class="btn btn-outline-secondary btn-sm" @onclick="ToggleDarkMode">
-          @(isDark ? "☀️  Modo Claro" : "🌙 Modo Escuro")
-      </button>
-  </div>
+<div class="dash-banner">
+    <img src="/images/header-bg.png" class="dash-banner-bg" alt="" />
+    <img src="/images/header-logo.png" class="dash-banner-logo" alt="PokeCollection" />
+    <button class="btn btn-outline-light btn-sm dash-banner-btn" @onclick="ToggleDarkMode">
+        @(isDark ? "☀️ Modo Claro" : "🌙 Modo Escuro")
+    </button>
+</div>
 
-  <div class="stats-row">
-      <div class="stat-card stat-blue">
-          <div class="stat-icon">📦</div>
-          <div class="stat-value">@totalSets</div>
-          <div class="stat-label">Coleções</div>
-      </div>
-      <div class="stat-card stat-yellow">
-          <div class="stat-icon">🃏</div>
-          <div class="stat-value">@totalCards</div>
-          <div class="stat-label">Total de Cartas</div>
-      </div>
-      <div class="stat-card stat-red">
-          <div class="stat-icon">✅</div>
-          <div class="stat-value">@totalOwned</div>
-          <div class="stat-label">Adquiridas</div>
-      </div>
-  </div>
+<div class="stats-row">
+    <div class="stat-card stat-blue">
+        <div class="stat-icon">
+            <img src="/images/deck.png" class="stat-icon-img" alt="coleções" />
+        </div>
+        <div class="stat-value">@totalSets</div>
+        <div class="stat-label">Coleções</div>
+    </div>
+    <div class="stat-card stat-yellow">
+        <div class="stat-icon">
+            <img src="/images/tcg-card-back.jpg" class="stat-icon-img" alt="cartas" />
+        </div>
+        <div class="stat-value">@totalCards</div>
+        <div class="stat-label">Total de Cartas</div>
+    </div>
+    <div class="stat-card stat-red">
+        <div class="stat-icon">
+            <img src="/images/catch.gif" class="stat-icon-img" alt="adquiridas" />
+        </div>
+        <div class="stat-value">@totalOwned</div>
+        <div class="stat-label">Adquiridas</div>
+    </div>
+</div>
 
-  <h4 class="section-title">Progresso por Coleção</h4>
+<div class="section-header">
+    <h4 class="section-title">Progresso por Coleção</h4>
+    <div class="section-controls">
+        <input class="search-input" placeholder="Buscar coleção..."
+               @oninput="e => searchTerm = e.Value?.ToString() ?? string.Empty" />
+        <div class="sort-btns">
+            <button class="sort-btn @(sortMode == SortMode.Alfabetica ? "active" : "")"
+                    @onclick="() => SetSort(SortMode.Alfabetica)">
+                🔤 A–Z
+            </button>
+            <button class="sort-btn @(sortMode == SortMode.MaisAdquiridas ? "active" : "")"
+                    @onclick="() => SetSort(SortMode.MaisAdquiridas)">
+                ✅ Mais adquiridas
+            </button>
+        </div>
+    </div>
+</div>
 
-  <div class="progress-list">
-      @foreach (var s in progress)
-      {
-          var pct = s.Total > 0 ? (int)((double)s.Owned / s.Total * 100) : 0;
-          var barClass = pct >= 75 ? "bar-green" : pct >= 25 ? "bar-yellow" : "bar-red";
+<div class="progress-list">
+    @foreach (var s in SortedProgress)
+    {
+        var pct = s.Total > 0 ? (int)((double)s.Owned / s.Total * 100) : 0;
+        var barClass = pct >= 75 ? "bar-green" : pct >= 25 ? "bar-yellow" : "bar-red";
 
-          <div class="progress-card">
-              <div class="progress-info">
-                  <span class="progress-name">@s.Name</span>
-                  <span class="progress-count">@s.Owned / @s.Total (@pct%)</span>
-              </div>
-              <div class="progress-track">
-                  <div class="progress-fill @barClass" style="width: @pct%"></div>
-              </div>
-          </div>
-      }
-  </div>
+        <div class="progress-card">
+            <div class="progress-info">
+                <span class="progress-name">@s.Name</span>
+                <span class="progress-count">@s.Owned / @s.Total (@pct%)</span>
+            </div>
+            <div class="progress-track">
+                <div class="progress-fill @barClass" style="width: @pct%"></div>
+            </div>
+        </div>
+    }
+</div>
 
+@if (recentCards.Count > 0)
+{
+    <div class="section-header" style="margin-top:32px">
+        <h4 class="section-title">Últimas Aquisições</h4>
+    </div>
+    <div class="recent-list">
+        @foreach (var r in recentCards)
+        {
+            <div class="recent-item">
+                <div class="recent-info">
+                    <span class="recent-name">@r.CardName</span>
+                    <span class="recent-set">@r.SetName — #@r.Number</span>
+                </div>
+                <span class="recent-date">@r.AcquiredAt.ToLocalTime().ToString("dd/MM/yy HH:mm")</span>
+            </div>
+        }
+    </div>
+}
 
 @code {
     private bool isDark = false;
     private int totalSets;
     private int totalCards;
     private int totalOwned;
+    private string searchTerm = "";
+
+    private enum SortMode { Alfabetica, MaisAdquiridas }
+    private SortMode sortMode = SortMode.Alfabetica;
+
+    private record SetProgress(string Name, int Total, int Owned);
+    private List<SetProgress> progress = new();
+
+    private record RecentCard(string CardName, string SetName, string Number, int SetId, DateTime AcquiredAt);
+    private List<RecentCard> recentCards = new();
+
+    private IEnumerable<SetProgress> FilteredProgress =>
+        string.IsNullOrWhiteSpace(searchTerm)
+            ? progress
+            : progress.Where(s => s.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
+
+    private IEnumerable<SetProgress> SortedProgress => sortMode switch
+    {
+        SortMode.MaisAdquiridas => FilteredProgress.OrderByDescending(s => s.Owned).ThenByDescending(s => s.Total > 0 ? (double)s.Owned / s.Total : 0),
+        _                       => FilteredProgress.OrderBy(s => s.Name)
+    };
+
+    private void SetSort(SortMode mode) => sortMode = mode;
 
     protected override async Task OnInitializedAsync()
     {
-        totalSets = await Db.Sets.CountAsync();
+        totalSets  = await Db.Sets.CountAsync();
         totalCards = await Db.Sets.SumAsync(s => s.TotalCards);
         totalOwned = await Db.Cards.CountAsync(s => s.Owned);
-        progress = await Db.Sets
-        .OrderBy(s => s.Name)
-        .Select(s => new SetProgress(s.Name,
-        s.TotalCards,
-        s.Cards.Count(c => c.Owned)
-        ))
-        .ToListAsync();
+        progress   = await Db.Sets
+            .Select(s => new SetProgress(s.Name, s.TotalCards, s.Cards.Count(c => c.Owned)))
+            .ToListAsync();
+
+        recentCards = await Db.Cards
+            .AsNoTracking()
+            .Where(c => c.AcquiredAt != null)
+            .OrderByDescending(c => c.AcquiredAt)
+            .Take(10)
+            .Select(c => new RecentCard(
+                c.Name,
+                c.Set != null ? c.Set.Name : "",
+                c.Number,
+                c.PokemonSetId,
+                c.AcquiredAt!.Value
+            ))
+            .ToListAsync();
     }
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
@@ -82,7 +157,4 @@
     {
         isDark = await JS.InvokeAsync<bool>("darkMode.toggle");
     }
-
-    private record SetProgress(string Name, int Total, int Owned);
-    private List<SetProgress> progress = new();
 }

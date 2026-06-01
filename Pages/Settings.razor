@@ -1,0 +1,114 @@
+@page "/settings"
+@using PokeCollection.Data.Services
+@inject WindowService WindowSvc
+@inject IJSRuntime JS
+
+<div class="settings-header">
+    <h3>Configurações</h3>
+</div>
+
+<div class="settings-section">
+    <h4 class="settings-section-title">Backup e Restauração</h4>
+    <p class="settings-section-desc">
+        O banco de dados contém todas as suas coleções e cartas adquiridas.
+        Faça backups regularmente para não perder seu progresso.
+    </p>
+
+    <div class="settings-actions">
+        <div class="settings-action-card">
+            <div class="settings-action-info">
+                <span class="settings-action-title">Exportar Backup</span>
+                <span class="settings-action-desc">Salva uma cópia do banco de dados no local escolhido.</span>
+            </div>
+            <button class="settings-btn settings-btn-blue" @onclick="BackupAsync" disabled="@isProcessing">
+                💾 Exportar
+            </button>
+        </div>
+
+        <div class="settings-action-card">
+            <div class="settings-action-info">
+                <span class="settings-action-title">Restaurar Backup</span>
+                <span class="settings-action-desc">Substitui o banco atual por um arquivo de backup. O app será reiniciado.</span>
+            </div>
+            <button class="settings-btn settings-btn-orange" @onclick="RestoreAsync" disabled="@isProcessing">
+                📂 Restaurar
+            </button>
+        </div>
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(message))
+    {
+        <div class="settings-message @(isError ? "settings-message-error" : "settings-message-ok")">
+            @message
+        </div>
+    }
+</div>
+
+@code {
+    private bool isProcessing = false;
+    private bool isError = false;
+    private string? message;
+
+    private async Task BackupAsync()
+    {
+        isProcessing = true;
+        message = null;
+        isError = false;
+
+        try
+        {
+            var dbPath = Path.Combine(AppContext.BaseDirectory, "poke_collection.db");
+            var defaultName = $"PokeCollection_backup_{DateTime.Now:yyyy-MM-dd}.db";
+            var destPath = await Task.Run(() => WindowSvc.ShowSaveFileDialog("Banco de dados SQLite|*.db", defaultName));
+
+            if (destPath is null)
+            {
+                isProcessing = false;
+                return;
+            }
+
+            await Task.Run(() => File.Copy(dbPath, destPath, overwrite: true));
+            message = "Backup exportado com sucesso!";
+        }
+        catch (Exception ex)
+        {
+            isError = true;
+            message = $"Erro ao exportar: {ex.Message}";
+        }
+        finally
+        {
+            isProcessing = false;
+        }
+    }
+
+    private async Task RestoreAsync()
+    {
+        isProcessing = true;
+        message = null;
+        isError = false;
+
+        try
+        {
+            var sourcePath = await Task.Run(() => WindowSvc.ShowOpenFileDialog("Banco de dados SQLite|*.db"));
+            if (sourcePath is null)
+            {
+                isProcessing = false;
+                return;
+            }
+
+            var dbPath = Path.Combine(AppContext.BaseDirectory, "poke_collection.db");
+            await Task.Run(() => File.Copy(sourcePath, dbPath, overwrite: true));
+
+            message = "Backup restaurado. Reiniciando...";
+            StateHasChanged();
+            await Task.Delay(1500);
+            WindowSvc.RestartApplication();
+        }
+        catch (Exception ex)
+        {
+            isError = true;
+            message = $"Erro ao restaurar: {ex.Message}";
+            isProcessing = false;
+        }
+    }
+}

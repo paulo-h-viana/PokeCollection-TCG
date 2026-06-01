@@ -1,77 +1,382 @@
+/* ── Loading ── */
+.loading-overlay {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 24px;
+}
 
-  .cards-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
-      gap: 12px;
-      padding: 16px 0;
-  }
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to   { transform: rotate(360deg); }
+}
 
-  .card-item {
-      position: relative;
-      border: 3px solid transparent;
-      border-radius: 8px;
-      cursor: pointer;
-      text-align: center;
-      padding: 4px;
-      transition: transform 0.15s;
-  }
+.loading-spinner {
+    width: 90px;
+    height: 90px;
+    object-fit: contain;
+    animation: spin 1s linear infinite;
+}
 
-  .card-item:hover {
-      transform: scale(1.05);
-  }
+.loading-status {
+    font-size: 0.95rem;
+    font-weight: 600;
+    opacity: 0.7;
+    letter-spacing: 0.3px;
+    margin: 0;
+}
 
-  .card-item.owned {
-      border-color: #28a745;
-  }
+.cards-header {
+    margin-bottom: 4px;
+}
 
-  .card-item img {
-      width: 100%;
-      border-radius: 4px;
-  }
+.cards-header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
 
-  .owned-badge {
-      position: absolute;
-      top: 6px;
-      right: 6px;
-      background: #28a745;
-      color: white;
-      border-radius: 50%;
-      width: 22px;
-      height: 22px;
-      font-size: 13px;
-      font-weight: bold;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-  }
+.cards-header-top h3 {
+    margin: 0;
+    font-weight: 700;
+    flex: 1;
+}
 
-  .no-image {
-      height: 80px;
-      background: #eee;
-      border-radius: 4px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 11px;
-      color: #666;
-      padding: 4px;
-  }
+.cards-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
 
-  .card-info {
-      margin-top: 4px;
-  }
+.cards-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
 
-  .card-name {
-      display: block;
-      font-size: 11px;
-      font-weight: 600;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-  }
+.cards-sync-toast {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, #28a745, #5fd87a);
+    color: #fff;
+    font-size: 0.82rem;
+    font-weight: 600;
+    padding: 6px 14px;
+    border-radius: 99px;
+    box-shadow: 0 3px 10px rgba(40,167,69,0.3);
+    animation: toast-in 0.3s ease;
+}
 
-  .card-number {
-      display: block;
-      font-size: 10px;
-      color: #888;
-  }
+@keyframes toast-in {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Botão lupa ── */
+.zoom-btn {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: rgba(0, 0, 0, 0.55);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+    padding: 0;
+    font-size: 11px;
+    z-index: 2;
+}
+
+.card-item:hover .zoom-btn {
+    opacity: 1;
+}
+
+.zoom-btn:hover {
+    background: rgba(0, 0, 0, 0.8);
+}
+
+/* ── Modal overlay ── */
+.modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fade-in 0.15s ease;
+    backdrop-filter: blur(3px);
+}
+
+@keyframes fade-in {
+    from { opacity: 0; }
+    to   { opacity: 1; }
+}
+
+/* ── Modal card ── */
+.modal-card {
+    position: relative;
+    background: #1a1a2e;
+    border-radius: 16px;
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 14px;
+    max-width: 340px;
+    width: 90vw;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+    animation: slide-up 0.2s ease;
+}
+
+@keyframes slide-up {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.modal-close {
+    background: rgba(255, 255, 255, 0.12);
+    border: none;
+    border-radius: 8px;
+    color: white;
+    padding: 8px 24px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: background 0.15s;
+    width: 100%;
+    justify-content: center;
+}
+
+.modal-close:hover {
+    background: rgba(255, 255, 255, 0.22);
+}
+
+.modal-img {
+    max-width: 100%;
+    max-height: 65vh;
+    border-radius: 10px;
+    object-fit: contain;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.5);
+}
+
+.modal-no-image {
+    width: 240px;
+    height: 340px;
+    background: #2a2a4a;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #aaa;
+    font-size: 0.9rem;
+    padding: 16px;
+    text-align: center;
+}
+
+.modal-info {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+}
+
+.modal-name {
+    color: #fff;
+    font-weight: 700;
+    font-size: 1rem;
+}
+
+.modal-number {
+    color: #aaa;
+    font-size: 0.82rem;
+}
+
+.modal-rarity {
+    color: #ffd700;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* ── Grid ── */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    padding: 16px 0;
+}
+
+/* ── Card ── */
+.card-item {
+    position: relative;
+    border: 3px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    padding: 4px;
+    transition: transform 0.15s;
+}
+
+.card-item:hover {
+    transform: scale(1.05);
+}
+
+.card-item.owned {
+    border-color: #28a745;
+}
+
+.card-item img {
+    width: 100%;
+    border-radius: 4px;
+}
+
+.owned-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: #28a745;
+    color: white;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 13px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.no-image {
+    height: 80px;
+    background: #eee;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #666;
+    padding: 4px;
+}
+
+.card-info {
+    margin-top: 4px;
+}
+
+.card-name {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-number {
+    display: block;
+    font-size: 10px;
+    color: #888;
+}
+
+.missing-log-btn {
+    background: rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    border-radius: 99px;
+    padding: 5px 14px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    cursor: pointer;
+    color: inherit;
+    transition: background 0.15s, border-color 0.15s;
+}
+
+.missing-log-btn:hover {
+    background: rgba(0, 0, 0, 0.1);
+}
+
+.missing-log-btn.active {
+    background: #e67e00;
+    border-color: #e67e00;
+    color: #fff;
+}
+
+.missing-log-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 6px;
+}
+
+.missing-log-count {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    font-weight: 600;
+}
+
+.missing-log-panel {
+    margin-bottom: 12px;
+    animation: fade-in 0.2s ease;
+}
+
+.missing-log-textarea {
+    width: 100%;
+    height: 200px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.82rem;
+    line-height: 1.6;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    background: rgba(0, 0, 0, 0.04);
+    padding: 12px 16px;
+    resize: vertical;
+    color: inherit;
+    box-sizing: border-box;
+    outline: none;
+}
+
+/* ── Dark mode ── */
+html.dark .no-image {
+    background: #2a2a4a;
+    color: #aaa;
+}
+
+html.dark .missing-log-btn {
+    background: rgba(255, 255, 255, 0.07);
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #e0e0e0;
+}
+
+html.dark .missing-log-btn:hover {
+    background: rgba(255, 255, 255, 0.13);
+}
+
+html.dark .missing-log-btn.active {
+    background: #e67e00;
+    border-color: #e67e00;
+    color: #fff;
+}
+
+html.dark .missing-log-textarea {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #e0e0e0;
+}

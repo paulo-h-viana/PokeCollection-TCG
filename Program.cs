@@ -1,15 +1,19 @@
 using PokeCollection.Data;
 using Microsoft.EntityFrameworkCore;
 using PokeCollection.Services;
+using PokeCollection.Data.Services;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var dbPath = Path.Combine(AppContext.BaseDirectory, "poke_collection.db");
 
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlite("Data Source=poke_collection.db"));
+    options.UseSqlite($"Data Source={dbPath}"));
 builder.Services.AddSingleton<WeatherForecastService>();
 builder.Services.AddHttpClient<PokemonApiService>();
+builder.Services.AddSingleton<WindowService>();
 
 builder.WebHost.UseUrls("http://localhost:5123");
 
@@ -25,21 +29,28 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.EnsureCreated();
 
+    try { db.Database.ExecuteSqlRaw("ALTER TABLE Cards ADD COLUMN AcquiredAt TEXT NULL"); }
+    catch { }
+
     var api = scope.ServiceProvider.GetRequiredService<PokemonApiService>();
-    var(ok, _, apiSets) = await api.GetSetsAsync();
+    var (ok, _, apiSets) = await api.GetSetsAsync();
 
     if (ok)
     {
         var existingIds = db.Sets.Select(s => s.ExternalId).ToHashSet();
-        foreach(var s in apiSets)
+        foreach (var s in apiSets)
         {
-            if(existingIds.Contains(s.id)) continue;
+            if (!System.Text.RegularExpressions.Regex.IsMatch(s.id, @"^[a-zA-Z0-9\-\.]+$"))
+                continue;
+
+            if (existingIds.Contains(s.id)) continue;
+
             db.Sets.Add(new PokeCollection.Data.Models.PokemonSet
             {
                 ExternalId = s.id,
                 Name = s.name,
                 Series = s.serie,
-                TotalCards = s.cardCount.total,
+                TotalCards = s.cardCount.official,
                 Symbol = s.symbol,
                 Logo = s.logo
             });
@@ -50,12 +61,14 @@ using (var scope = app.Services.CreateScope())
 
 await app.StartAsync();
 
+var windowService = app.Services.GetRequiredService<WindowService>();
+
 var uiThread = new Thread(() =>
 {
     Application.SetHighDpiMode(HighDpiMode.SystemAware);
     Application.EnableVisualStyles();
     Application.SetCompatibleTextRenderingDefault(false);
-    Application.Run(new MainForm("http://localhost:5123"));
+    Application.Run(new MainForm("http://localhost:5123", windowService));
 });
 uiThread.SetApartmentState(ApartmentState.STA);
 uiThread.Start();

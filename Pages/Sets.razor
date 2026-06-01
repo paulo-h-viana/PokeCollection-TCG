@@ -1,107 +1,154 @@
 @page "/sets"
 @using Microsoft.EntityFrameworkCore
 @using PokeCollection.Data.Models
-@using System.Security.Cryptography.X509Certificates
-@using System.Drawing.Text
 @inject PokeCollection.Data.AppDbContext Db
 @inject PokeCollection.Services.PokemonApiService Api
 
-<h3>Coleções</h3>
+<div class="sets-header">
+    <h3>Coleções</h3>
+    <input class="search-input" placeholder="Buscar coleção..."
+           @oninput="e => searchTerm = e.Value?.ToString() ?? string.Empty" />
+</div>
 
-<button class="btn btn-primary" @onclick="SyncSets" disabled="@isSyncing">
-    @(isSyncing ? "Sincronizando..." : "Sincronizar coleções")
-</button>
-
-@if (!string.IsNullOrWhiteSpace(syncMessage))
+@if (newCount > 0)
 {
-    <pre style="margin-top:12px; white-space:pre-wrap;">@syncMessage</pre>
+    <div class="sync-toast">
+        <span class="sync-toast-icon">✨</span>
+        <span>@newCount nova@(newCount > 1 ? "s coleções adicionadas" : " coleção adicionada")!</span>
+    </div>
+}
+@if (!string.IsNullOrWhiteSpace(syncError))
+{
+    <div class="sync-toast sync-toast-error">
+        <span class="sync-toast-icon">⚠️</span>
+        <span>@syncError</span>
+    </div>
 }
 
 @if (sets is null)
 {
     <p>Carregando...</p>
 }
-else if (sets.Count == 0)
+else if (!FilteredSets.Any())
 {
     <p>Nenhuma coleção encontrada.</p>
 }
 else
 {
-    <ul>
-        @foreach (var s in sets)
+    <div class="sets-grid">
+        @foreach (var s in FilteredSets)
         {
-            var logoUrl = string.IsNullOrWhiteSpace(s.Logo) ? "" : s.Logo.TrimEnd('/') + ".webp";
-            <li>
-                @if (string.IsNullOrWhiteSpace(logoUrl))
+            var owned = ownedCounts.GetValueOrDefault(s.Id, 0);
+            var total = s.TotalCards;
+            var pct   = total > 0 ? (int)((double)owned / total * 100) : 0;
+            var barClass = pct >= 75 ? "bar-green" : pct >= 25 ? "bar-yellow" : "bar-red";
+
+            <a class="set-card" href="/cards/@s.Id">
+                <div class="set-img-wrap">
+                    <img src="/images/sets/@(s.ExternalId).png"
+                         alt="@s.Name"
+                         onerror="this.onerror=null;this.src='/images/header-logo.png'" />
+                </div>
+                <div class="set-info">
+                    <span class="set-name">@s.Name</span>
+                    <span class="set-series">@s.Series</span>
+                </div>
+                @if (total > 0)
                 {
-                    <img src="/images/sets/@(s.ExternalId).png" style="height: 60px;" onerror="this.style.display='none'" />
+                    <div class="set-progress-wrap">
+                        <div class="set-progress-track">
+                            <div class="set-progress-fill @barClass" style="width: @pct%"></div>
+                        </div>
+                        <span class="set-progress-label">@owned/@total</span>
+                    </div>
                 }
-                else
-                {
-                    <img src="/images/sets/@(s.ExternalId).png" style="height: 60px;" onerror="this.onerror=null;this.src='@logoUrl'" />
-                }
-                <a href="/cards/@s.Id">@s.Name</a>
-                <small> (@s.Series)</small>
-            </li>
+            </a>
         }
-    </ul>
+    </div>
 }
 
 @code {
-
     private List<PokemonSet>? sets;
+    private Dictionary<int, int> ownedCounts = new();
+    private int newCount = 0;
+    private string? syncError;
+    private string searchTerm = "";
 
-    private bool isSyncing = false;
-    private string? syncMessage;
+    private IEnumerable<PokemonSet> FilteredSets =>
+        sets is null ? Enumerable.Empty<PokemonSet>() :
+        string.IsNullOrWhiteSpace(searchTerm)
+            ? sets
+            : sets.Where(s => s.Name.Contains(searchTerm, StringComparison.OrdinalIgnoreCase));
 
     protected override async Task OnInitializedAsync()
     {
         sets = await Db.Sets.AsNoTracking()
             .OrderBy(s => s.Name)
             .ToListAsync();
+
+        await LoadOwnedCounts();
+
+        _ = SyncInBackground();
     }
 
-    private async Task SyncSets()
+    private async Task LoadOwnedCounts()
     {
-        isSyncing = true;
-        syncMessage = null;
+        var counts = await Db.Cards
+            .AsNoTracking()
+            .Where(c => c.Owned)
+            .GroupBy(c => c.PokemonSetId)
+            .Select(g => new { SetId = g.Key, Count = g.Count() })
+            .ToListAsync();
+        ownedCounts = counts.ToDictionary(x => x.SetId, x => x.Count);
+    }
 
+    private async Task SyncInBackground()
+    {
         try
         {
-            var (ok, message, apiSets) = await Api.GetSetsAsync();
-            syncMessage = message;
-
+            var (ok, _, apiSets) = await Api.GetSetsAsync();
             if (!ok) return;
 
+            int added = 0;
+            int updated = 0;
             foreach (var s in apiSets)
             {
-                var exists = await Db.Sets.AnyAsync(x => x.ExternalId == s.id);
-                if (!exists)
+                if (!System.Text.RegularExpressions.Regex.IsMatch(s.id, @"^[a-zA-Z0-9\-\.]+$"))
+                    continue;
+
+                var existing = await Db.Sets.FirstOrDefaultAsync(x => x.ExternalId == s.id);
+                if (existing is null)
                 {
                     Db.Sets.Add(new PokemonSet
                     {
                         ExternalId = s.id,
-                        Name = s.name,
-                        Series = string.IsNullOrWhiteSpace(s.serie) ? "" : s.serie
+                        Name       = s.name,
+                        Series     = string.IsNullOrWhiteSpace(s.serie) ? "" : s.serie,
+                        TotalCards = s.cardCount.official
                     });
+                    added++;
+                }
+                else if (existing.TotalCards == 0 && s.cardCount.official > 0)
+                {
+                    existing.TotalCards = s.cardCount.official;
+                    updated++;
                 }
             }
 
-            await Db.SaveChangesAsync();
-
-            sets = await Db.Sets.AsNoTracking()
-                .OrderBy(x => x.Name)
-                .ToListAsync();
-
-            syncMessage += $"\nSalvo no SQLite. Total no banco: {sets.Count}";
+            if (added > 0 || updated > 0)
+            {
+                await Db.SaveChangesAsync();
+                sets = await Db.Sets.AsNoTracking()
+                    .OrderBy(x => x.Name)
+                    .ToListAsync();
+                newCount = added;
+                StateHasChanged();
+            }
         }
-        catch (Exception ex)
+        catch
         {
-            syncMessage = "Erro ao sincronizar: " + ex.Message;
-        }
-        finally
-        {
-            isSyncing = false;
+            syncError = "Erro ao sincronizar coleções. Tente novamente.";
+            StateHasChanged();
         }
     }
 }

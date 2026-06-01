@@ -4,226 +4,357 @@
 @using PokeCollection.Services
 @inject PokeCollection.Services.PokemonApiService Api
 @inject PokeCollection.Data.AppDbContext Db
+@inject IJSRuntime JS
 
-@if (set is null)
+@if (isLoading)
 {
-    <p>Carregando...</p>
+    <div class="loading-overlay">
+        <img src="/images/loading.svg" class="loading-spinner" alt="Carregando..." />
+        <p class="loading-status">@loadingStatus</p>
+    </div>
 }
 else
 {
-    <h3>@set.Name</h3>
+    <div class="cards-header">
+        <div class="cards-header-top">
+            <h3>@set?.Name</h3>
+            <div class="cards-header-actions">
+                <button class="missing-log-btn @(missingLog is not null ? "active" : "")" @onclick="ToggleMissingLog">
+                    📋 Cartas faltantes
+                </button>
+                @if (newCardsAdded > 0 || newImagesLoaded > 0)
+                {
+                    <div class="cards-sync-toast">
+                        @if (newCardsAdded > 0)
+                        {
+                            <span>✨ @newCardsAdded nova@(newCardsAdded > 1 ? "s cartas" : " carta") adicionada@(newCardsAdded > 1 ? "s" : "")</span>
+                        }
+                        @if (newImagesLoaded > 0)
+                        {
+                            <span>🖼️ @newImagesLoaded imagem@(newImagesLoaded > 1 ? "ns" : "") baixada@(newImagesLoaded > 1 ? "s" : "")</span>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+        <div class="cards-filters">
+            <div class="sort-btns">
+                <button class="sort-btn @(cardFilter == CardFilter.Todas ? "active" : "")"
+                        @onclick="() => cardFilter = CardFilter.Todas">Todas</button>
+                <button class="sort-btn @(cardFilter == CardFilter.Faltantes ? "active" : "")"
+                        @onclick="() => cardFilter = CardFilter.Faltantes">Faltantes</button>
+                <button class="sort-btn @(cardFilter == CardFilter.Adquiridas ? "active" : "")"
+                        @onclick="() => cardFilter = CardFilter.Adquiridas">Adquiridas</button>
+            </div>
+            <input class="search-input" placeholder="Buscar carta..." style="min-width:180px"
+                   @oninput="e => cardNameFilter = e.Value?.ToString() ?? string.Empty" />
+        </div>
+    </div>
 
-    <button class="btn btn-primary" @onclick="SyncCards" disabled="@isSyncing">
-    @(isSyncing ? "Sincronizando..." : "Sincronizar cartas desta coleção")
-</button>
-<button class="btn btn-secondary" @onclick="LoadMissingImages" disabled="@isSyncing">
-    Carregar imagens (faltantes)
-</button>
-
-@if (!string.IsNullOrWhiteSpace(syncMessage))
-{
-    <pre style="margin-top:12px; white-space:pre-wrap;">@syncMessage</pre>
-}
-
-    @if (cards.Count == 0)
+    @if (missingLog is not null)
     {
-        <p>Essa coleção ainda não tem cartas no banco.</p>
+        <div class="missing-log-panel">
+            <div class="missing-log-toolbar">
+                <span class="missing-log-count">@missingCount carta@(missingCount != 1 ? "s" : "") faltante@(missingCount != 1 ? "s" : "")</span>
+                <button class="sort-btn" @onclick="CopyLog">📋 Copiar</button>
+            </div>
+            <textarea class="missing-log-textarea" readonly>@missingLog</textarea>
+        </div>
+    }
+
+    @if (!FilteredCards.Any())
+    {
+        <p>Nenhuma carta encontrada.</p>
     }
     else
     {
-         <div class="cards-grid">
-      @foreach (var c in cards)
-      {
-          var finalUrl = BuildCardImageUrl(c.ImageSmallUrl, "low", "webp");
+        <div class="cards-grid">
+            @foreach (var c in FilteredCards)
+            {
+                var finalUrl = BuildCardImageUrl(c.ImageSmallUrl, "low", "webp");
+                <div class="card-item @(c.Owned ? "owned" : "")"
+                     @onclick="() => ToggleOwned(c.Id, !c.Owned)"
+                     title="@c.Name">
 
-          <div class="card-item @(c.Owned ? "owned" : "")"
-               @onclick="() => ToggleOwned(c.Id, !c.Owned)"
-               title="@c.Name">
+                    @if (c.Owned)
+                    {
+                        <span class="owned-badge">✓</span>
+                    }
 
-              @if (c.Owned)
-              {
-                  <span class="owned-badge">✓</span>
-              }
+                    <button class="zoom-btn" @onclick="() => OpenModal(c)" @onclick:stopPropagation="true" title="Ver carta">
+                        <span class="oi oi-magnifying-glass"></span>
+                    </button>
 
-              @if (string.IsNullOrWhiteSpace(c.ImageSmallUrl))
-              {
-                  <div class="no-image">@c.Name</div>
-              }
-              else
-              {
-                  <img src="@finalUrl" />
-              }
+                    @if (string.IsNullOrWhiteSpace(c.ImageSmallUrl))
+                    {
+                        <div class="no-image">@c.Name</div>
+                    }
+                    else
+                    {
+                        <img src="@finalUrl" />
+                    }
 
-              <div class="card-info">
-                  <span class="card-name">@c.Name</span>
-                  <span class="card-number">#@c.Number</span>
-              </div>
-          </div>
-      }
-  </div>
+                    <div class="card-info">
+                        <span class="card-name">@c.Name</span>
+                        <span class="card-number">#@c.Number</span>
+                    </div>
+                </div>
+            }
+        </div>
     }
+}
+
+@* ── Modal ── *@
+@if (modalCard is not null)
+{
+    <div class="modal-overlay" @onclick="CloseModal">
+        <div class="modal-card" @onclick:stopPropagation="true">
+            @if (string.IsNullOrWhiteSpace(modalCard.ImageSmallUrl))
+            {
+                <div class="modal-no-image">@modalCard.Name</div>
+            }
+            else
+            {
+                <img class="modal-img" src="@BuildCardImageUrl(modalCard.ImageSmallUrl, "high", "webp")" alt="@modalCard.Name"
+                     onerror="this.onerror=null;this.src='@BuildCardImageUrl(modalCard.ImageSmallUrl, "low", "webp")'" />
+            }
+
+            <div class="modal-info">
+                <span class="modal-name">@modalCard.Name</span>
+                <span class="modal-number">#@modalCard.Number</span>
+                @if (!string.IsNullOrWhiteSpace(modalCard.Rarity))
+                {
+                    <span class="modal-rarity">@modalCard.Rarity</span>
+                }
+            </div>
+
+            <button class="modal-close" @onclick="CloseModal">
+                <span class="oi oi-x"></span> Fechar
+            </button>
+        </div>
+    </div>
 }
 
 @code {
-
-    private static string BuildCardImageUrl(string? baseUrl, string quality = "low", string ext = "webp")
-{
-    if (string.IsNullOrWhiteSpace(baseUrl)) return "";
-
-    var url = baseUrl.Trim();
-
-    if (url.EndsWith(".png") || url.EndsWith(".jpg") || url.EndsWith(".jpeg") || url.EndsWith(".webp"))
-        return url;
-
-    url = url.TrimEnd('/');
-
-    return $"{url}/{quality}.{ext}";
-}
-private async Task LoadMissingImages()
-{
-    if (set is null) return;
-
-    isSyncing = true;
-    syncMessage = null;
-
-    try
-    {
-        var missing = await Db.Cards
-            .Where(x => x.PokemonSetId == SetId && (x.ImageSmallUrl == null || x.ImageSmallUrl == ""))
-            .Take(30) // lote pequeno pra não demorar
-            .ToListAsync();
-
-        if (missing.Count == 0)
-        {
-            syncMessage = "Nenhuma carta sem imagem nesse set.";
-            return;
-        }
-
-        int updated = 0;
-
-        foreach (var card in missing)
-        {
-            var (ok, _, details) = await Api.GetCardDetailsAsync(card.ExternalId);
-            if (!ok || details is null) continue;
-
-            var url = PokemonApiService.ExtractFinalImageUrlFromDetails(details);
-            if (string.IsNullOrWhiteSpace(url)) continue;
-
-            card.ImageSmallUrl = url;
-            updated++;
-        }
-
-        await Db.SaveChangesAsync();
-
-        cards = await Db.Cards.AsNoTracking()
-            .Where(x => x.PokemonSetId == SetId)
-            .OrderBy(x => x.Number)
-            .ToListAsync();
-
-        syncMessage = $"Imagens atualizadas: {updated} (lote de {missing.Count})";
-    }
-    catch (Exception ex)
-    {
-        syncMessage = "Erro ao carregar imagens: " + ex.Message;
-    }
-    finally
-    {
-        isSyncing = false;
-    }
-}
-
     [Parameter] public int SetId { get; set; }
 
     private PokemonSet? set;
     private List<PokemonCard> cards = new();
 
+    private bool isLoading = true;
+    private string loadingStatus = "Carregando...";
+    private int newCardsAdded = 0;
+    private int newImagesLoaded = 0;
+
+    private PokemonCard? modalCard;
+    private string? missingLog;
+    private int missingCount;
+
+    private enum CardFilter { Todas, Faltantes, Adquiridas }
+    private CardFilter cardFilter = CardFilter.Todas;
+    private string cardNameFilter = "";
+
+    private IEnumerable<PokemonCard> FilteredCards
+    {
+        get
+        {
+            var filtered = cardFilter switch
+            {
+                CardFilter.Faltantes  => cards.Where(c => !c.Owned),
+                CardFilter.Adquiridas => cards.Where(c => c.Owned),
+                _                     => cards.AsEnumerable()
+            };
+            if (!string.IsNullOrWhiteSpace(cardNameFilter))
+                filtered = filtered.Where(c => c.Name.Contains(cardNameFilter, StringComparison.OrdinalIgnoreCase));
+            return filtered;
+        }
+    }
+
+    private void OpenModal(PokemonCard card) => modalCard = card;
+    private void CloseModal() => modalCard = null;
+
+    private void ToggleMissingLog()
+    {
+        if (missingLog is not null)
+        {
+            missingLog = null;
+            return;
+        }
+
+        var missing = cards.Where(c => !c.Owned).ToList();
+        missingCount = missing.Count;
+        if (missing.Count == 0)
+        {
+            missingLog = "Todas as cartas desta coleção foram adquiridas!";
+            return;
+        }
+
+        var total = set?.TotalCards > 0 ? set.TotalCards : cards.Count;
+        missingLog = string.Join("\n", missing.Select(c => $"1 {c.Name} ({c.Number}/{total}) [QUALIDADE=NM] [IDIOMA=PT]"));
+    }
+
+    private async Task CopyLog()
+    {
+        if (!string.IsNullOrEmpty(missingLog))
+            await JS.InvokeVoidAsync("clipboardHelper.copy", missingLog);
+    }
+
     protected override async Task OnInitializedAsync()
     {
         set = await Db.Sets.AsNoTracking().FirstOrDefaultAsync(x => x.Id == SetId);
-
         cards = await Db.Cards.AsNoTracking()
             .Where(x => x.PokemonSetId == SetId)
             .OrderBy(x => x.Number)
             .ToListAsync();
+
+        _ = SyncInBackground();
+    }
+
+    private async Task SyncInBackground()
+    {
+        try
+        {
+            if (set is null)
+            {
+                isLoading = false;
+                StateHasChanged();
+                return;
+            }
+
+            loadingStatus = "Sincronizando cartas...";
+            StateHasChanged();
+
+            var (ok, _, apiCards, officialTotal) = await Api.GetCardsBySetAsync(set.ExternalId);
+
+            if (ok && set.TotalCards == 0 && officialTotal > 0)
+            {
+                var setEntity = await Db.Sets.FirstOrDefaultAsync(x => x.Id == SetId);
+                if (setEntity is not null)
+                {
+                    setEntity.TotalCards = officialTotal;
+                    await Db.SaveChangesAsync();
+                    set = await Db.Sets.AsNoTracking().FirstOrDefaultAsync(x => x.Id == SetId);
+                }
+            }
+
+            if (ok && apiCards.Count > 0)
+            {
+                var existingIds = new HashSet<string>(
+                    await Db.Cards
+                        .Where(x => x.PokemonSetId == SetId)
+                        .Select(x => x.ExternalId)
+                        .ToListAsync()
+                );
+
+                int added = 0;
+                foreach (var c in apiCards)
+                {
+                    if (string.IsNullOrWhiteSpace(c.id) || existingIds.Contains(c.id)) continue;
+
+                    Db.Cards.Add(new PokemonCard
+                    {
+                        ExternalId    = c.id,
+                        PokemonSetId  = SetId,
+                        Name          = c.name ?? "",
+                        Number        = c.localId ?? "",
+                        Rarity        = c.rarity ?? "",
+                        ImageSmallUrl = "",
+                        Owned         = false
+                    });
+                    added++;
+                }
+
+                if (added > 0)
+                {
+                    await Db.SaveChangesAsync();
+                    newCardsAdded = added;
+                    cards = await ReloadCards();
+                }
+            }
+
+            var missing = await Db.Cards
+                .Where(x => x.PokemonSetId == SetId && (x.ImageSmallUrl == null || x.ImageSmallUrl == ""))
+                .ToListAsync();
+
+            if (missing.Count > 0)
+            {
+                int done = 0;
+                int total = missing.Count;
+                int pendingSave = 0;
+
+                foreach (var card in missing)
+                {
+                    done++;
+                    loadingStatus = $"Baixando imagens... {done}/{total}";
+                    StateHasChanged();
+                    await Task.Yield();
+
+                    var (imgOk, _, details) = await Api.GetCardDetailsAsync(card.ExternalId);
+                    if (!imgOk || details is null) continue;
+
+                    var url = PokemonApiService.ExtractFinalImageUrlFromDetails(details);
+                    if (string.IsNullOrWhiteSpace(url)) continue;
+
+                    card.ImageSmallUrl = url;
+                    pendingSave++;
+
+                    if (pendingSave >= 10)
+                    {
+                        await Db.SaveChangesAsync();
+                        newImagesLoaded += pendingSave;
+                        pendingSave = 0;
+                        cards = await ReloadCards();
+                    }
+                }
+
+                if (pendingSave > 0)
+                {
+                    await Db.SaveChangesAsync();
+                    newImagesLoaded += pendingSave;
+                    cards = await ReloadCards();
+                }
+            }
+        }
+        catch
+        {
+            loadingStatus = "Erro ao sincronizar. Tente novamente.";
+            StateHasChanged();
+            await Task.Delay(2500);
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task<List<PokemonCard>> ReloadCards() =>
+        await Db.Cards.AsNoTracking()
+            .Where(x => x.PokemonSetId == SetId)
+            .OrderBy(x => x.Number)
+            .ToListAsync();
+
+    private static string BuildCardImageUrl(string? baseUrl, string quality = "low", string ext = "webp")
+    {
+        if (string.IsNullOrWhiteSpace(baseUrl)) return "";
+        var url = baseUrl.Trim();
+        if (url.EndsWith(".png") || url.EndsWith(".jpg") || url.EndsWith(".jpeg") || url.EndsWith(".webp"))
+            return url;
+        return $"{url.TrimEnd('/')}/{quality}.{ext}";
     }
 
     private async Task ToggleOwned(int cardId, bool owned)
     {
         var card = await Db.Cards.FirstOrDefaultAsync(x => x.Id == cardId);
         if (card is null) return;
-
         card.Owned = owned;
+        card.AcquiredAt = owned ? DateTime.UtcNow : null;
         await Db.SaveChangesAsync();
-
         var idx = cards.FindIndex(x => x.Id == cardId);
-        if (idx >= 0) cards[idx].Owned = owned;
-    }
-
-    private bool isSyncing = false;
-private string? syncMessage;
-
-private async Task SyncCards()
-{
-    if (set is null) return;
-
-    isSyncing = true;
-    syncMessage = null;
-
-    try
-    {
-        // O set.ExternalId é o id do TCGdex (ex: "sv01", etc.)
-        var (ok, message, apiCards) = await Api.GetCardsBySetAsync(set.ExternalId);
-        syncMessage = message;
-
-        if (!ok) return;
-
-        // Pega os ExternalIds já existentes pra evitar N chamadas ao banco
-        var existingIds = await Db.Cards
-            .Where(x => x.PokemonSetId == SetId)
-            .Select(x => x.ExternalId)
-            .ToListAsync();
-
-        var existing = new HashSet<string>(existingIds);
-
-        int added = 0;
-
-        foreach (var c in apiCards)
+        if (idx >= 0)
         {
-            if (string.IsNullOrWhiteSpace(c.id)) continue;
-            if (existing.Contains(c.id)) continue;
-
-            // tenta pegar imagem (varia entre "images.small" e "image")
-
-            Db.Cards.Add(new PokemonCard
-            {
-                ExternalId = c.id,
-                PokemonSetId = SetId,
-                Name = c.name ?? "",
-                Number = c.localId ?? "",
-                Rarity = c.rarity ?? "",
-                ImageSmallUrl = "",
-                Owned = false
-            });
-
-            added++;
+            cards[idx].Owned = owned;
+            cards[idx].AcquiredAt = card.AcquiredAt;
         }
-
-        await Db.SaveChangesAsync();
-
-        cards = await Db.Cards.AsNoTracking()
-            .Where(x => x.PokemonSetId == SetId)
-            .OrderBy(x => x.Number)
-            .ToListAsync();
-
-        syncMessage += $"\nNovas cartas adicionadas: {added}\nTotal no banco: {cards.Count}";
     }
-    catch (Exception ex)
-    {
-        syncMessage = "Erro ao sincronizar cartas: " + ex.Message;
-    }
-    finally
-    {
-        isSyncing = false;
-    }
-}
 }

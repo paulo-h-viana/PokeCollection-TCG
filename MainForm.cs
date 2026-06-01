@@ -1,19 +1,32 @@
 using Microsoft.Web.WebView2.WinForms;
+using PokeCollection.Data.Services;
 
 public class MainForm : Form
 {
     private readonly WebView2 _webView;
     private readonly string _url;
 
-    public MainForm(string url)
+    public MainForm(string url, WindowService windowService)
     {
+        windowService.RegisterMainForm(this);
+
         _url = url;
         Text = "PokeCollection TCG";
         Width = 1400;
         Height = 900;
         MinimumSize = new Size(800, 600);
         StartPosition = FormStartPosition.CenterScreen;
-        Icon = SystemIcons.Application;
+
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "images", "icon.png");
+        if (File.Exists(iconPath))
+        {
+            using var bitmap = new Bitmap(iconPath);
+            Icon = Icon.FromHandle(bitmap.GetHicon());
+        }
+        else
+        {
+            Icon = SystemIcons.Application;
+        }
 
         _webView = new WebView2 { Dock = DockStyle.Fill };
         Controls.Add(_webView);
