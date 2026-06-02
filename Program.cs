@@ -20,7 +20,6 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite($"Data Source={dbPath}"));
 builder.Services.AddSingleton<WeatherForecastService>();
 builder.Services.AddHttpClient<PokemonApiService>();
-builder.Services.AddHttpClient<PromotionApiService>();
 builder.Services.AddSingleton<WindowService>();
 
 builder.WebHost.UseUrls("http://localhost:5123");
