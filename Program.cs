@@ -2,10 +2,17 @@ using PokeCollection.Data;
 using Microsoft.EntityFrameworkCore;
 using PokeCollection.Services;
 using PokeCollection.Data.Services;
+using Velopack;
+
+// Inicializa o Velopack para lidar com instalação/atualização antes de subir a UI
+VelopackApp.Build().Run();
 
 var builder = WebApplication.CreateBuilder(args);
 
-var dbPath = Path.Combine(AppContext.BaseDirectory, "poke_collection.db");
+// Aponta o banco de dados para a pasta persistente do usuário (sobrevive a atualizações)
+var appDataFolder = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "PokeCollection");
+Directory.CreateDirectory(appDataFolder);
+var dbPath = Path.Combine(appDataFolder, "poke_collection.db");
 
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
