@@ -1,0 +1,58 @@
+@page "/promotions"
+@using PokeCollection.Data.Services
+@inject PromotionApiService PromoService
+
+<div class="promotions-header">
+    <h3>Ofertas de Mercado</h3>
+    <p>Encontre os melhores preços de produtos lacrados de Pokémon TCG.</p>
+</div>
+
+@if (_isLoading)
+{
+    <div class="alert alert-info mt-3">Buscando as melhores ofertas na Amazon e Mercado Livre...</div>
+}
+else if (!string.IsNullOrWhiteSpace(_errorMessage))
+{
+    <div class="alert alert-warning mt-3">@_errorMessage</div>
+}
+else
+{
+    <div class="promo-grid mt-4">
+        @foreach (var p in _promotions)
+        {
+            <div class="promo-card">
+                <div class="promo-img-wrap">
+                    <img src="@p.ImageUrl" alt="@p.Title" />
+                </div>
+                <div class="promo-info">
+                    <span class="promo-title" title="@p.Title">@p.Title</span>
+                    <span class="promo-price">R$ @p.Price.ToString("N2")</span>
+                    <span class="promo-source">@p.Source</span>
+                </div>
+                <a href="@p.Link" target="_blank" class="promo-btn">Ver Oferta</a>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private bool _isLoading = true;
+    private string? _errorMessage;
+    private List<PromotionItem> _promotions = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var (ok, message, result) = await PromoService.GetPromotionsAsync();
+        
+        if (ok)
+        {
+            _promotions = result;
+        }
+        else
+        {
+            _errorMessage = message;
+        }
+        
+        _isLoading = false;
+    }
+}
