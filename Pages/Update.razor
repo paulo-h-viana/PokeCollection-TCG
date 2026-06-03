@@ -36,7 +36,6 @@
     private UpdateInfo? _updateInfo;
     
     private const string GithubRepoUrl = "https://github.com/paulo-h-viana/PokeCollection-TCG";
-    private const string GithubToken = "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";
 
     private async Task CheckForUpdatesAsync()
     {
@@ -46,7 +45,7 @@
 
         try
         {
-            var source = new GithubSource(GithubRepoUrl, accessToken: GithubToken, prerelease: false);
+            var source = new GithubSource(GithubRepoUrl, accessToken: null, prerelease: false);
             var mgr = new UpdateManager(source);
             
             if (!mgr.IsInstalled)
@@ -79,7 +78,7 @@
 
         try
         {
-            var source = new GithubSource(GithubRepoUrl, accessToken: GithubToken, prerelease: false);
+            var source = new GithubSource(GithubRepoUrl, accessToken: null, prerelease: false);
             var mgr = new UpdateManager(source);
             await mgr.DownloadUpdatesAsync(_updateInfo);
             mgr.ApplyUpdatesAndRestart(_updateInfo);
