@@ -2,7 +2,7 @@
     <div class="nav-brand-row">
         <a class="navbar-brand" href="">
             <span class="brand-icon">🎴</span>
-            <span class="brand-text">PokeCollection</span>
+            <span class="brand-text">Pokémon TCG</span>
         </a>
         <button class="nav-toggle-btn" title="@(collapsed ? "Expandir menu" : "Recolher menu")" @onclick="ToggleNav">
             <span class="oi @(collapsed ? "oi-chevron-right" : "oi-chevron-left")" aria-hidden="true"></span>
@@ -20,6 +20,12 @@
             <NavLink class="nav-link" href="sets">
                 <span class="oi oi-layers nav-icon" aria-hidden="true"></span>
                 <span class="nav-label">Coleções</span>
+            </NavLink>
+        </div>
+        <div class="nav-item">
+            <NavLink class="nav-link" href="duplicates">
+                <span class="oi oi-loop-circular nav-icon" aria-hidden="true"></span>
+                <span class="nav-label">Repetidas</span>
             </NavLink>
         </div>
         <div class="nav-item">

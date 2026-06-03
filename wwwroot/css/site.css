@@ -274,13 +274,6 @@ html.dark .sort-btn.active {
     margin-bottom: 24px;
 }
 
-.dash-banner-btn {
-    position: absolute;
-    top: 12px;
-    right: 12px;
-    z-index: 3;
-}
-
 /* ── Dashboard banner header ── */
 .dash-banner-bg {
     position: absolute;

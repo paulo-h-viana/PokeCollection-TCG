@@ -1,0 +1,217 @@
+@page "/duplicates"
+@using Microsoft.EntityFrameworkCore
+@using PokeCollection.Data.Models
+@inject PokeCollection.Data.AppDbContext Db
+@inject IJSRuntime JS
+
+@if (_selectedSet is null)
+{
+    <div class="dup-header">
+        <h3>Repetidas</h3>
+        <input class="search-input" placeholder="Buscar coleção..."
+               @oninput="e => _search = e.Value?.ToString() ?? string.Empty" />
+    </div>
+
+    @if (_sets is null)
+    {
+        <p>Carregando...</p>
+    }
+    else if (!FilteredSets.Any())
+    {
+        <p>Nenhuma coleção com cartas possuídas encontrada.</p>
+    }
+    else
+    {
+        <div class="sets-grid">
+            @foreach (var s in FilteredSets)
+            {
+                var dupCount = _dupCounts.GetValueOrDefault(s.Id, 0);
+                <button class="set-card dup-set-card" @onclick="() => SelectSet(s)">
+                    <div class="set-img-wrap">
+                        <img src="/images/sets/@(s.ExternalId).png"
+                             alt="@s.Name"
+                             onerror="this.onerror=null;this.src='/images/header-logo.png'" />
+                    </div>
+                    <div class="set-info">
+                        <span class="set-name">@s.Name</span>
+                        <span class="set-series">@s.Series</span>
+                    </div>
+                    <div class="dup-set-badge @(dupCount > 0 ? "has-dups" : "")">
+                        @(dupCount > 0 ? $"{dupCount} repetida{(dupCount > 1 ? "s" : "")}" : "Nenhuma repetida")
+                    </div>
+                </button>
+            }
+        </div>
+    }
+}
+else
+{
+    <div class="dup-detail-header">
+        <button class="sort-btn" @onclick="ClearSelection">← Voltar</button>
+        <h3>@_selectedSet.Name</h3>
+        @if (DuplicatedCards.Any())
+        {
+            <button class="dup-trade-btn @(_tradeLog is not null ? "active" : "")" @onclick="ToggleTradeLog">
+                📋 Lista de trocas
+            </button>
+        }
+    </div>
+
+    @if (_tradeLog is not null)
+    {
+        <div class="missing-log-panel">
+            <div class="missing-log-toolbar">
+                <span class="missing-log-count">@DuplicatedCards.Sum(c => c.DuplicateCount) repetida@(DuplicatedCards.Sum(c => c.DuplicateCount) != 1 ? "s" : "") no total</span>
+                <button class="sort-btn" @onclick="CopyTradeLog">📋 Copiar</button>
+            </div>
+            <textarea class="missing-log-textarea" readonly>@_tradeLog</textarea>
+        </div>
+    }
+
+    @if (!_ownedCards.Any())
+    {
+        <p>Nenhuma carta possuída nesta coleção.</p>
+    }
+    else
+    {
+        <div class="dup-cards-list">
+            @foreach (var c in _ownedCards)
+            {
+                <div class="dup-card-row @(c.DuplicateCount > 0 ? "has-dup" : "")">
+                    @if (!string.IsNullOrWhiteSpace(c.ImageSmallUrl))
+                    {
+                        <img class="dup-card-thumb" src="@BuildCardImageUrl(c.ImageSmallUrl)" alt="@c.Name" />
+                    }
+                    else
+                    {
+                        <div class="dup-card-thumb dup-no-image">@c.Number</div>
+                    }
+                    <div class="dup-card-info">
+                        <span class="dup-card-name">@c.Name</span>
+                        <span class="dup-card-number">#@c.Number</span>
+                    </div>
+                    <div class="dup-counter">
+                        <button class="dup-btn" @onclick="() => Decrement(c)" disabled="@(c.DuplicateCount == 0)">−</button>
+                        <span class="dup-count">@c.DuplicateCount</span>
+                        <button class="dup-btn" @onclick="() => Increment(c)">+</button>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    private List<PokemonSet>? _sets;
+    private PokemonSet? _selectedSet;
+    private List<PokemonCard> _ownedCards = new();
+    private Dictionary<int, int> _dupCounts = new();
+    private string _search = "";
+    private string? _tradeLog;
+
+    private IEnumerable<PokemonSet> FilteredSets =>
+        _sets?.Where(s => s.Name.Contains(_search, StringComparison.OrdinalIgnoreCase)) ?? Enumerable.Empty<PokemonSet>();
+
+    private IEnumerable<PokemonCard> DuplicatedCards =>
+        _ownedCards.Where(c => c.DuplicateCount > 0);
+
+    protected override async Task OnInitializedAsync()
+    {
+        var ownedSetIds = await Db.Cards
+            .AsNoTracking()
+            .Where(c => c.Owned)
+            .Select(c => c.PokemonSetId)
+            .Distinct()
+            .ToListAsync();
+
+        _sets = await Db.Sets
+            .AsNoTracking()
+            .Where(s => ownedSetIds.Contains(s.Id))
+            .OrderBy(s => s.Name)
+            .ToListAsync();
+
+        _dupCounts = await Db.Cards
+            .AsNoTracking()
+            .Where(c => c.Owned && c.DuplicateCount > 0)
+            .GroupBy(c => c.PokemonSetId)
+            .Select(g => new { SetId = g.Key, Count = g.Sum(c => c.DuplicateCount) })
+            .ToDictionaryAsync(x => x.SetId, x => x.Count);
+    }
+
+    private async Task SelectSet(PokemonSet set)
+    {
+        _selectedSet = set;
+        _tradeLog = null;
+        _ownedCards = await Db.Cards
+            .Where(c => c.PokemonSetId == set.Id && c.Owned)
+            .OrderBy(c => c.Number)
+            .ToListAsync();
+    }
+
+    private void ClearSelection()
+    {
+        _selectedSet = null;
+        _ownedCards = new();
+        _tradeLog = null;
+    }
+
+    private const int MaxDuplicates = 99;
+
+    private async Task Increment(PokemonCard card)
+    {
+        if (card.DuplicateCount >= MaxDuplicates) return;
+        card.DuplicateCount++;
+        await Db.SaveChangesAsync();
+        RefreshDupCount();
+        _tradeLog = null;
+    }
+
+    private async Task Decrement(PokemonCard card)
+    {
+        if (card.DuplicateCount == 0) return;
+        card.DuplicateCount--;
+        await Db.SaveChangesAsync();
+        RefreshDupCount();
+        _tradeLog = null;
+    }
+
+    private void RefreshDupCount()
+    {
+        if (_selectedSet is null) return;
+        var total = _ownedCards.Sum(c => c.DuplicateCount);
+        if (total > 0)
+            _dupCounts[_selectedSet.Id] = total;
+        else
+            _dupCounts.Remove(_selectedSet.Id);
+    }
+
+    private void ToggleTradeLog()
+    {
+        if (_tradeLog is not null)
+        {
+            _tradeLog = null;
+            return;
+        }
+
+        var dups = DuplicatedCards.ToList();
+        var total = _selectedSet?.TotalCards > 0 ? _selectedSet.TotalCards : _ownedCards.Count;
+        _tradeLog = string.Join("\n", dups.Select(c =>
+            $"{c.DuplicateCount}x {c.Name} ({c.Number}/{total}) [QUALIDADE=NM] [IDIOMA=PT]"));
+    }
+
+    private async Task CopyTradeLog()
+    {
+        if (!string.IsNullOrEmpty(_tradeLog))
+            await JS.InvokeVoidAsync("clipboardHelper.copy", _tradeLog);
+    }
+
+    private static string BuildCardImageUrl(string? baseUrl)
+    {
+        if (string.IsNullOrWhiteSpace(baseUrl)) return "";
+        var url = baseUrl.Trim();
+        if (!url.StartsWith("https://", StringComparison.OrdinalIgnoreCase)) return "";
+        if (url.EndsWith(".png") || url.EndsWith(".jpg") || url.EndsWith(".jpeg") || url.EndsWith(".webp"))
+            return url;
+        return $"{url.TrimEnd('/')}/low.webp";
+    }
+}

@@ -2,14 +2,10 @@
 @using Microsoft.EntityFrameworkCore
 @using PokeCollection.Data.Models
 @inject PokeCollection.Data.AppDbContext Db
-@inject IJSRuntime JS
 
 <div class="dash-banner">
     <img src="/images/header-bg.png" class="dash-banner-bg" alt="" />
     <img src="/images/header-logo.png" class="dash-banner-logo" alt="PokeCollection" />
-    <button class="btn btn-outline-light btn-sm dash-banner-btn" @onclick="ToggleDarkMode">
-        @(isDark ? "☀️ Modo Claro" : "🌙 Modo Escuro")
-    </button>
 </div>
 
 <div class="stats-row">
@@ -92,7 +88,6 @@
 }
 
 @code {
-    private bool isDark = false;
     private int totalSets;
     private int totalCards;
     private int totalOwned;
@@ -144,17 +139,4 @@
             .ToListAsync();
     }
 
-    protected override async Task OnAfterRenderAsync(bool firstRender)
-    {
-        if (firstRender)
-        {
-            isDark = await JS.InvokeAsync<bool>("darkMode.get");
-            StateHasChanged();
-        }
-    }
-
-    private async Task ToggleDarkMode()
-    {
-        isDark = await JS.InvokeAsync<bool>("darkMode.toggle");
-    }
 }

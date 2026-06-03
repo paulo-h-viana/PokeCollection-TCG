@@ -85,6 +85,16 @@
     color: #fff;
 }
 
+.settings-btn-light {
+    background: #1e293b;
+    color: #f8fafc;
+}
+
+.settings-btn-dark {
+    background: #f1c40f;
+    color: #1a1a2e;
+}
+
 .settings-message {
     margin-top: 16px;
     padding: 10px 16px;

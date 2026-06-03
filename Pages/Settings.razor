@@ -8,6 +8,21 @@
 </div>
 
 <div class="settings-section">
+    <h4 class="settings-section-title">Aparência</h4>
+    <div class="settings-actions">
+        <div class="settings-action-card">
+            <div class="settings-action-info">
+                <span class="settings-action-title">Tema</span>
+                <span class="settings-action-desc">Alterna entre modo claro e escuro.</span>
+            </div>
+            <button class="settings-btn @(isDark ? "settings-btn-dark" : "settings-btn-light")" @onclick="ToggleDarkMode">
+                @(isDark ? "☀️ Modo Claro" : "🌙 Modo Escuro")
+            </button>
+        </div>
+    </div>
+</div>
+
+<div class="settings-section">
     <h4 class="settings-section-title">Backup e Restauração</h4>
     <p class="settings-section-desc">
         O banco de dados contém todas as suas coleções e cartas adquiridas.
@@ -45,9 +60,24 @@
 </div>
 
 @code {
+    private bool isDark = false;
     private bool isProcessing = false;
     private bool isError = false;
     private string? message;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            isDark = await JS.InvokeAsync<bool>("darkMode.get");
+            StateHasChanged();
+        }
+    }
+
+    private async Task ToggleDarkMode()
+    {
+        isDark = await JS.InvokeAsync<bool>("darkMode.toggle");
+    }
 
     private async Task BackupAsync()
     {
