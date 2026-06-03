@@ -1,6 +1,19 @@
 ﻿@inherits LayoutComponentBase
+@inject PokeCollection.Data.Services.UpdateService UpdateSvc
+@implements IDisposable
 
 <PageTitle>PokeCollection</PageTitle>
+
+@if (UpdateSvc.AvailableUpdate is not null && !_dismissed)
+{
+    <div class="update-banner">
+        <span>Nova versão <strong>@UpdateSvc.AvailableUpdate.TargetFullRelease.Version</strong> disponível</span>
+        <button class="btn-instalar" @onclick="InstalarAsync" disabled="@UpdateSvc.IsUpdating">
+            @(UpdateSvc.IsUpdating ? "Instalando..." : "Instalar e Reiniciar")
+        </button>
+        <button class="btn-fechar" @onclick='() => _dismissed = true'>✕</button>
+    </div>
+}
 
 <div class="page">
     <div class="sidebar">
@@ -13,3 +26,19 @@
         </article>
     </main>
 </div>
+
+@code {
+    private bool _dismissed;
+
+    protected override async Task OnInitializedAsync()
+    {
+        UpdateSvc.OnStateChanged += OnUpdate;
+        await UpdateSvc.CheckOnceAsync();
+    }
+
+    private void OnUpdate() => InvokeAsync(StateHasChanged);
+
+    private Task InstalarAsync() => UpdateSvc.ApplyUpdateAsync();
+
+    public void Dispose() => UpdateSvc.OnStateChanged -= OnUpdate;
+}

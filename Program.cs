@@ -19,6 +19,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite($"Data Source={dbPath}"));
 builder.Services.AddHttpClient<PokemonApiService>();
 builder.Services.AddSingleton<WindowService>();
+builder.Services.AddSingleton<UpdateService>();
 
 builder.WebHost.UseUrls("http://localhost:5123");
 
