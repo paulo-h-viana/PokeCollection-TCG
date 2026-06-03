@@ -34,7 +34,7 @@ jobs:
           echo "VERSION=$version" >> $env:GITHUB_ENV
 
       - name: Velopack Pack
-        run: vpk pack -u PokeCollection -v ${{ env.VERSION }} -p publish -e PokeCollection.exe
+        run: vpk pack -u PokeCollection -v ${{ env.VERSION }} -p publish -e PokeCollection.exe -i icon_exe.ico
 
       - name: Create Release and Upload Assets
         uses: softprops/action-gh-release@v2
