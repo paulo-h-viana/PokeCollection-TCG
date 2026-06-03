@@ -33,10 +33,42 @@ app.MapFallbackToPage("/_Host");
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.EnsureCreated();
 
-    try { db.Database.ExecuteSqlRaw("ALTER TABLE Cards ADD COLUMN AcquiredAt TEXT NULL"); }
-    catch { }
+    // Bancos criados com EnsureCreated() não têm __EFMigrationsHistory.
+    // Detectamos esse caso e marcamos a migration inicial como já aplicada
+    // para que Migrate() não tente recriar tabelas que já existem.
+    var conn = db.Database.GetDbConnection();
+    await conn.OpenAsync();
+
+    long hasMigrationsTable;
+    using (var cmd = conn.CreateCommand())
+    {
+        cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='__EFMigrationsHistory'";
+        hasMigrationsTable = (long)(await cmd.ExecuteScalarAsync())!;
+    }
+
+    if (hasMigrationsTable == 0)
+    {
+        long hasSetsTable;
+        using (var cmd = conn.CreateCommand())
+        {
+            cmd.CommandText = "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='Sets'";
+            hasSetsTable = (long)(await cmd.ExecuteScalarAsync())!;
+        }
+
+        if (hasSetsTable > 0)
+        {
+            // DB legado: cria a tabela de histórico e registra a migration inicial como aplicada
+            using var cmd = conn.CreateCommand();
+            cmd.CommandText = "CREATE TABLE __EFMigrationsHistory (MigrationId TEXT NOT NULL CONSTRAINT PK___EFMigrationsHistory PRIMARY KEY, ProductVersion TEXT NOT NULL)";
+            await cmd.ExecuteNonQueryAsync();
+            cmd.CommandText = "INSERT INTO __EFMigrationsHistory VALUES ('20260603220600_InitialCreate', '8.0.0')";
+            await cmd.ExecuteNonQueryAsync();
+        }
+    }
+
+    await conn.CloseAsync();
+    await db.Database.MigrateAsync();
 
     var api = scope.ServiceProvider.GetRequiredService<PokemonApiService>();
     var (ok, _, apiSets) = await api.GetSetsAsync();
