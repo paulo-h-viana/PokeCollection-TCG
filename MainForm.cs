@@ -17,11 +17,10 @@ public class MainForm : Form
         MinimumSize = new Size(800, 600);
         StartPosition = FormStartPosition.CenterScreen;
 
-        var iconPath = Path.Combine(AppContext.BaseDirectory, "wwwroot", "images", "icon.png");
+        var iconPath = Path.Combine(AppContext.BaseDirectory, "icon_exe.ico");
         if (File.Exists(iconPath))
         {
-            using var bitmap = new Bitmap(iconPath);
-            Icon = Icon.FromHandle(bitmap.GetHicon());
+            Icon = new Icon(iconPath);
         }
         else
         {
