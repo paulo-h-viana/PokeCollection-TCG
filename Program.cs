@@ -1,6 +1,5 @@
 using PokeCollection.Data;
 using Microsoft.EntityFrameworkCore;
-using PokeCollection.Services;
 using PokeCollection.Data.Services;
 using Velopack;
 
@@ -18,7 +17,6 @@ builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite($"Data Source={dbPath}"));
-builder.Services.AddSingleton<WeatherForecastService>();
 builder.Services.AddHttpClient<PokemonApiService>();
 builder.Services.AddSingleton<WindowService>();
 
