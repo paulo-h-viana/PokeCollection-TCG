@@ -1,6 +1,6 @@
 using System.Text.Json;
 
-namespace PokeCollection.Services;
+namespace PokeCollection.Data.Services;
 
 public class PokemonApiService
 {

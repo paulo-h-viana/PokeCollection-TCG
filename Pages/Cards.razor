@@ -1,8 +1,8 @@
 @page "/cards/{SetId:int}"
 @using Microsoft.EntityFrameworkCore
 @using PokeCollection.Data.Models
-@using PokeCollection.Services
-@inject PokeCollection.Services.PokemonApiService Api
+@using PokeCollection.Data.Services
+@inject PokeCollection.Data.Services.PokemonApiService Api
 @inject PokeCollection.Data.AppDbContext Db
 @inject IJSRuntime JS
 
