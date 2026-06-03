@@ -4,7 +4,7 @@ Write-Host "1. Limpando publicacoes anteriores..."
 if (Test-Path "publish") { Remove-Item -Recurse -Force "publish" }
 
 Write-Host "2. Compilando e publicando o projeto..."
-dotnet publish -c Release -r win-x64 --self-contained false -o publish
+dotnet publish -c Release -r win-x64 --self-contained true -o publish
 
 $version = Read-Host "Versao do instalador (ex: 1.0.0)"
 
