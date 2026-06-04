@@ -1,14 +1,4 @@
 <div class="nav-sidebar @(collapsed ? "nav-collapsed" : "")">
-    <div class="nav-brand-row">
-        <a class="navbar-brand" href="">
-            <span class="brand-icon">🎴</span>
-            <span class="brand-text">Pokémon TCG</span>
-        </a>
-        <button class="nav-toggle-btn" title="@(collapsed ? "Expandir menu" : "Recolher menu")" @onclick="ToggleNav">
-            <span class="oi @(collapsed ? "oi-chevron-right" : "oi-chevron-left")" aria-hidden="true"></span>
-        </button>
-    </div>
-
     <nav class="flex-column">
         <div class="nav-item">
             <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
@@ -34,8 +24,13 @@
                 <span class="nav-label">Configurações</span>
             </NavLink>
         </div>
-
     </nav>
+
+    <div class="nav-footer">
+        <button class="nav-toggle-btn" title="@(collapsed ? "Expandir menu" : "Recolher menu")" @onclick="ToggleNav">
+            <span class="oi @(collapsed ? "oi-chevron-right" : "oi-chevron-left")" aria-hidden="true"></span>
+        </button>
+    </div>
 </div>
 
 @code {

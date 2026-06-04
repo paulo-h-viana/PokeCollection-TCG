@@ -19,6 +19,10 @@
     <component type="typeof(HeadOutlet)" render-mode="ServerPrerendered" />
 </head>
 <body>
+    <div id="loading-overlay">
+        <img src="/images/pokeball_animation_loading.gif" alt="Carregando..." />
+    </div>
+
     @RenderBody()
 
     <div id="blazor-error-ui">
@@ -34,5 +38,11 @@
 
     <script src="_framework/blazor.server.js"></script>
     <script src="js/darkmode.js"></script>
+    <script>
+        window.hideLoading = function () {
+            var el = document.getElementById('loading-overlay');
+            if (el) el.style.display = 'none';
+        };
+    </script>
 </body>
 </html>

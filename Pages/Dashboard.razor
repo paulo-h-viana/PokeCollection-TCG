@@ -2,6 +2,7 @@
 @using Microsoft.EntityFrameworkCore
 @using PokeCollection.Data.Models
 @inject PokeCollection.Data.AppDbContext Db
+@inject IJSRuntime JS
 
 <div class="dash-banner">
     <img src="/images/header-bg.png" class="dash-banner-bg" alt="" />
@@ -137,6 +138,12 @@
                 c.AcquiredAt!.Value
             ))
             .ToListAsync();
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+            await JS.InvokeVoidAsync("hideLoading");
     }
 
 }

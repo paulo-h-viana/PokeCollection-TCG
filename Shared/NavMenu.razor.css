@@ -13,51 +13,14 @@
     width: 60px;
 }
 
-/* ── Brand / top row ── */
-.nav-brand-row {
+/* ── Footer com botão de toggle ── */
+.nav-footer {
+    margin-top: auto;
+    padding: 10px;
     display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0 10px;
-    height: 3.5rem;
-    background-color: rgba(0, 0, 0, 0.4);
+    justify-content: flex-end;
+    background-color: rgba(0, 0, 0, 0.2);
     flex-shrink: 0;
-}
-
-.navbar-brand {
-    color: white;
-    font-size: 1.1rem;
-    font-weight: 600;
-    text-decoration: none;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    overflow: hidden;
-    flex: 1;
-    min-width: 0;
-}
-
-.navbar-brand:hover {
-    color: white;
-    text-decoration: none;
-}
-
-.brand-icon {
-    font-size: 1.3rem;
-    flex-shrink: 0;
-}
-
-.brand-text {
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    transition: opacity 0.15s ease;
-}
-
-.nav-collapsed .brand-text {
-    opacity: 0;
-    width: 0;
-    pointer-events: none;
 }
 
 /* ── Toggle button ── */
