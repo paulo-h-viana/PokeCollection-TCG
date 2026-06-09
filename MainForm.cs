@@ -46,7 +46,12 @@ public class MainForm : Form
 
     private async void OnLoad(object? sender, EventArgs e)
     {
-        await _webView.EnsureCoreWebView2Async();
+        var userDataFolder = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "PokeCollection", "WebView2");
+        var environment = await CoreWebView2Environment.CreateAsync(null, userDataFolder, null);
+
+        await _webView.EnsureCoreWebView2Async(environment);
         _webView.CoreWebView2.Settings.AreDevToolsEnabled = false;
         _webView.CoreWebView2.Settings.IsStatusBarEnabled = false;
         _webView.CoreWebView2.WebMessageReceived += OnWebMessageReceived;
