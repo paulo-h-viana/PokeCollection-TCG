@@ -45,9 +45,14 @@ else
 
             <a class="set-card" href="/cards/@s.Id">
                 <div class="set-img-wrap">
-                    <img src="/images/sets/@(s.ExternalId).png"
+                    <img class="set-logo" src="/images/sets/@(s.ExternalId).png"
                          alt="@s.Name"
                          onerror="this.onerror=null;this.src='/images/header-logo.png'" />
+                    @if (!string.IsNullOrWhiteSpace(s.Symbol))
+                    {
+                        <img class="set-symbol" src="@(s.Symbol).png" alt=""
+                             onerror="this.style.display='none'" />
+                    }
                 </div>
                 <div class="set-info">
                     <span class="set-name">@s.Name</span>
@@ -124,14 +129,25 @@ else
                         ExternalId = s.id,
                         Name       = s.name,
                         Series     = string.IsNullOrWhiteSpace(s.serie) ? "" : s.serie,
-                        TotalCards = s.cardCount.official
+                        TotalCards = s.cardCount.official,
+                        Symbol     = s.symbol
                     });
                     added++;
                 }
-                else if (existing.TotalCards == 0 && s.cardCount.official > 0)
+                else
                 {
-                    existing.TotalCards = s.cardCount.official;
-                    updated++;
+                    var changed = false;
+                    if (existing.TotalCards == 0 && s.cardCount.official > 0)
+                    {
+                        existing.TotalCards = s.cardCount.official;
+                        changed = true;
+                    }
+                    if (string.IsNullOrWhiteSpace(existing.Symbol) && !string.IsNullOrWhiteSpace(s.symbol))
+                    {
+                        existing.Symbol = s.symbol;
+                        changed = true;
+                    }
+                    if (changed) updated++;
                 }
             }
 

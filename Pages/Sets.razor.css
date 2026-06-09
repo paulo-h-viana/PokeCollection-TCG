@@ -80,7 +80,7 @@ html.dark .set-progress-track {
 /* ── Grid ── */
 .sets-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(165px, 1fr));
     gap: 16px;
 }
 
@@ -109,16 +109,24 @@ html.dark .set-progress-track {
 .set-img-wrap {
     background: #f8f8f8;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 18px 12px;
-    height: 110px;
+    gap: 10px;
+    padding: 16px 12px;
+    height: 140px;
     border-bottom: 1px solid rgba(0,0,0,0.05);
 }
 
-.set-img-wrap img {
-    max-height: 72px;
+.set-img-wrap .set-logo {
+    max-height: 66px;
     max-width: 100%;
+    object-fit: contain;
+}
+
+.set-symbol {
+    height: 30px;
+    width: 30px;
     object-fit: contain;
 }
 
