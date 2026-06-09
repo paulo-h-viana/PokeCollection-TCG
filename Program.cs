@@ -6,6 +6,13 @@ using Velopack;
 // Inicializa o Velopack para lidar com instalação/atualização antes de subir a UI
 VelopackApp.Build().Run();
 
+Application.SetHighDpiMode(HighDpiMode.SystemAware);
+Application.EnableVisualStyles();
+Application.SetCompatibleTextRenderingDefault(false);
+
+var splash = new SplashScreen();
+splash.Show();
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Aponta o banco de dados para a pasta persistente do usuário (sobrevive a atualizações)
@@ -103,10 +110,7 @@ var windowService = app.Services.GetRequiredService<WindowService>();
 
 var uiThread = new Thread(() =>
 {
-    Application.SetHighDpiMode(HighDpiMode.SystemAware);
-    Application.EnableVisualStyles();
-    Application.SetCompatibleTextRenderingDefault(false);
-    Application.Run(new MainForm("http://localhost:5123", windowService));
+    Application.Run(new MainForm("http://localhost:5123", windowService, splash));
 });
 uiThread.SetApartmentState(ApartmentState.STA);
 uiThread.Start();
