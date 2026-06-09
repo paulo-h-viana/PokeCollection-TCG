@@ -9,6 +9,9 @@ public class AppDbContext : DbContext
 
     public DbSet<PokemonSet> Sets => Set<PokemonSet>();
     public DbSet<PokemonCard> Cards => Set<PokemonCard>();
+    public DbSet<CardVariant> CardVariants => Set<CardVariant>();
+    public DbSet<UserCollection> UserCollections => Set<UserCollection>();
+    public DbSet<UserCollectionCard> UserCollectionCards => Set<UserCollectionCard>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,5 +27,25 @@ public class AppDbContext : DbContext
             .HasOne(c => c.Set)
             .WithMany(s => s.Cards)
             .HasForeignKey(c => c.PokemonSetId);
+
+        modelBuilder.Entity<CardVariant>()
+            .HasOne(v => v.Card)
+            .WithMany(c => c.Variants)
+            .HasForeignKey(v => v.PokemonCardId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<CardVariant>()
+            .HasIndex(v => new { v.PokemonCardId, v.Type })
+            .IsUnique();
+
+        modelBuilder.Entity<UserCollectionCard>()
+            .HasOne(c => c.Collection)
+            .WithMany(uc => uc.Cards)
+            .HasForeignKey(c => c.UserCollectionId)
+            .OnDelete(DeleteBehavior.Cascade);
+
+        modelBuilder.Entity<UserCollectionCard>()
+            .HasIndex(c => new { c.UserCollectionId, c.ExternalId })
+            .IsUnique();
     }
 }

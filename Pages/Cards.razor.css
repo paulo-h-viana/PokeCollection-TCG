@@ -226,6 +226,35 @@
     padding: 16px 0;
 }
 
+/* ── Imagem + marca d'água ── */
+.card-img-wrap {
+    position: relative;
+    line-height: 0;
+}
+
+.card-watermark {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6px;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.25;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 4px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.card-img-wrap.img-missing .card-watermark {
+    display: flex;
+}
+
 /* ── Card ── */
 .card-item {
     position: relative;
@@ -291,10 +320,22 @@
     text-overflow: ellipsis;
 }
 
+.card-meta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
 .card-number {
-    display: block;
     font-size: 10px;
     color: #888;
+}
+
+.card-info .card-symbol {
+    width: auto;
+    height: 13px;
+    border-radius: 0;
 }
 
 .missing-log-btn {
@@ -353,10 +394,113 @@
     outline: none;
 }
 
+/* ── Masterset toggle (swipe) ── */
+.masterset-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    user-select: none;
+    font-size: 0.78rem;
+    font-weight: 600;
+}
+
+.masterset-toggle input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.masterset-slider {
+    position: relative;
+    width: 38px;
+    height: 20px;
+    border-radius: 99px;
+    background: rgba(0, 0, 0, 0.18);
+    transition: background 0.2s;
+    flex-shrink: 0;
+}
+
+.masterset-slider::before {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #fff;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s;
+}
+
+.masterset-toggle input:checked + .masterset-slider {
+    background: #e67e00;
+}
+
+.masterset-toggle input:checked + .masterset-slider::before {
+    transform: translateX(18px);
+}
+
+.masterset-toggle input:disabled + .masterset-slider {
+    opacity: 0.5;
+    cursor: default;
+}
+
+/* ── Cores das variações ── */
+.variant-normal       { --vc: #9aa0a6; }
+.variant-reverse      { --vc: #3b82f6; }
+.variant-holo         { --vc: #a855f7; }
+.variant-firstEdition { --vc: #22c55e; }
+.variant-wPromo       { --vc: #f59e0b; }
+
+/* ── Chips de variação ── */
+.card-variants {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 6px;
+    cursor: default;
+}
+
+.variant-chip {
+    display: inline-flex;
+    align-items: center;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.4;
+    padding: 2px 7px;
+    border-radius: 99px;
+    border: 1.5px solid var(--vc, #28a745);
+    color: var(--vc, #28a745);
+    background: transparent;
+    cursor: pointer;
+    user-select: none;
+    transition: background 0.12s, color 0.12s;
+}
+
+.variant-chip.on {
+    background: var(--vc, #28a745);
+    color: #fff;
+}
+
+.variant-chip input {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
 /* ── Dark mode ── */
 html.dark .no-image {
     background: #2a2a4a;
     color: #aaa;
+}
+
+html.dark .masterset-slider {
+    background: rgba(255, 255, 255, 0.2);
 }
 
 html.dark .missing-log-btn {

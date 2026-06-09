@@ -25,6 +25,7 @@ builder.Services.AddServerSideBlazor();
 builder.Services.AddDbContext<AppDbContext>(options =>
     options.UseSqlite($"Data Source={dbPath}"));
 builder.Services.AddHttpClient<PokemonApiService>();
+builder.Services.AddScoped<UserCollectionService>();
 builder.Services.AddSingleton<WindowService>();
 builder.Services.AddSingleton<UpdateService>();
 

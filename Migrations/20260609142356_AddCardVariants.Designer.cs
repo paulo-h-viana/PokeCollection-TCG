@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PokeCollection.Data;
 
@@ -10,9 +11,11 @@ using PokeCollection.Data;
 namespace PokeCollection.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260609142356_AddCardVariants")]
+    partial class AddCardVariants
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder.HasAnnotation("ProductVersion", "8.0.0");
@@ -129,63 +132,6 @@ namespace PokeCollection.Migrations
                     b.ToTable("Sets");
                 });
 
-            modelBuilder.Entity("PokeCollection.Data.Models.UserCollection", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("UserCollections");
-                });
-
-            modelBuilder.Entity("PokeCollection.Data.Models.UserCollectionCard", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("INTEGER");
-
-                    b.Property<DateTime?>("AcquiredAt")
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ExternalId")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("ImageSmallUrl")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<string>("Number")
-                        .IsRequired()
-                        .HasColumnType("TEXT");
-
-                    b.Property<bool>("Owned")
-                        .HasColumnType("INTEGER");
-
-                    b.Property<int>("UserCollectionId")
-                        .HasColumnType("INTEGER");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserCollectionId", "ExternalId")
-                        .IsUnique();
-
-                    b.ToTable("UserCollectionCards");
-                });
-
             modelBuilder.Entity("PokeCollection.Data.Models.CardVariant", b =>
                 {
                     b.HasOne("PokeCollection.Data.Models.PokemonCard", "Card")
@@ -208,28 +154,12 @@ namespace PokeCollection.Migrations
                     b.Navigation("Set");
                 });
 
-            modelBuilder.Entity("PokeCollection.Data.Models.UserCollectionCard", b =>
-                {
-                    b.HasOne("PokeCollection.Data.Models.UserCollection", "Collection")
-                        .WithMany("Cards")
-                        .HasForeignKey("UserCollectionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("Collection");
-                });
-
             modelBuilder.Entity("PokeCollection.Data.Models.PokemonCard", b =>
                 {
                     b.Navigation("Variants");
                 });
 
             modelBuilder.Entity("PokeCollection.Data.Models.PokemonSet", b =>
-                {
-                    b.Navigation("Cards");
-                });
-
-            modelBuilder.Entity("PokeCollection.Data.Models.UserCollection", b =>
                 {
                     b.Navigation("Cards");
                 });

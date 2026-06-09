@@ -19,6 +19,11 @@ else
         <div class="cards-header-top">
             <h3>@set?.Name</h3>
             <div class="cards-header-actions">
+                <label class="masterset-toggle" title="Marcar as variações de cada carta">
+                    <input type="checkbox" checked="@mastersetEnabled" @onchange="ToggleMasterset" />
+                    <span class="masterset-slider"></span>
+                    <span class="masterset-text">Masterset</span>
+                </label>
                 <button class="missing-log-btn @(missingLog is not null ? "active" : "")" @onclick="ToggleMissingLog">
                     📋 Cartas faltantes
                 </button>
@@ -46,7 +51,7 @@ else
                 <button class="sort-btn @(cardFilter == CardFilter.Adquiridas ? "active" : "")"
                         @onclick="() => cardFilter = CardFilter.Adquiridas">Adquiridas</button>
             </div>
-            <input class="search-input" placeholder="Buscar carta..." style="min-width:180px"
+            <input class="search-input" placeholder="Buscar por nome ou nº (ex: 120/180)" style="min-width:180px"
                    @oninput="e => cardNameFilter = e.Value?.ToString() ?? string.Empty" />
         </div>
     </div>
@@ -71,7 +76,8 @@ else
         <div class="cards-grid">
             @foreach (var c in FilteredCards)
             {
-                var finalUrl = BuildCardImageUrl(c.ImageSmallUrl, "low", "webp");
+                var finalUrl = PokeCollection.Data.CardImage.BuildUrl(c.ImageSmallUrl, "low", "webp");
+                var symbolUrl = set?.Symbol;
                 <div class="card-item @(c.Owned ? "owned" : "")"
                      @onclick="() => ToggleOwned(c.Id, !c.Owned)"
                      title="@c.Name">
@@ -85,19 +91,36 @@ else
                         <span class="oi oi-magnifying-glass"></span>
                     </button>
 
-                    @if (string.IsNullOrWhiteSpace(c.ImageSmallUrl))
-                    {
-                        <div class="no-image">@c.Name</div>
-                    }
-                    else
-                    {
-                        <img src="@finalUrl" />
-                    }
+                    <div class="card-img-wrap @(string.IsNullOrWhiteSpace(finalUrl) ? "img-missing" : "")">
+                        <img class="card-img" src="@(string.IsNullOrWhiteSpace(finalUrl) ? Placeholder : finalUrl)"
+                             onerror="this.onerror=null;this.src='@Placeholder';this.closest('.card-img-wrap')?.classList.add('img-missing')" alt="@c.Name" />
+                        <span class="card-watermark">Imagem não localizada</span>
+                    </div>
 
                     <div class="card-info">
                         <span class="card-name">@c.Name</span>
-                        <span class="card-number">#@c.Number</span>
+                        <span class="card-meta">
+                            <span class="card-number">#@c.Number</span>
+                            @if (!string.IsNullOrWhiteSpace(symbolUrl))
+                            {
+                                <img class="card-symbol" src="@(symbolUrl).png" onerror="this.style.display='none'" alt="" />
+                            }
+                        </span>
                     </div>
+
+                    @if (mastersetEnabled && variantsByCard.TryGetValue(c.Id, out var cardVariants) && cardVariants.Count >= 2)
+                    {
+                        <div class="card-variants" @onclick:stopPropagation="true">
+                            @foreach (var v in cardVariants)
+                            {
+                                <label class="variant-chip variant-@v.Type @(v.Owned ? "on" : "")">
+                                    <input type="checkbox" checked="@v.Owned"
+                                           @onchange="e => ToggleVariant(v.Id, (bool)(e.Value ?? false))" />
+                                    @VariantLabel(v.Type)
+                                </label>
+                            }
+                        </div>
+                    }
                 </div>
             }
         </div>
@@ -109,15 +132,8 @@ else
 {
     <div class="modal-overlay" @onclick="CloseModal">
         <div class="modal-card" @onclick:stopPropagation="true">
-            @if (string.IsNullOrWhiteSpace(modalCard.ImageSmallUrl))
-            {
-                <div class="modal-no-image">@modalCard.Name</div>
-            }
-            else
-            {
-                <img class="modal-img" src="@BuildCardImageUrl(modalCard.ImageSmallUrl, "high", "webp")" alt="@modalCard.Name"
-                     onerror="this.onerror=null;this.src='@BuildCardImageUrl(modalCard.ImageSmallUrl, "low", "webp")'" />
-            }
+            <img class="modal-img" src="@(string.IsNullOrWhiteSpace(modalCard.ImageSmallUrl) ? Placeholder : PokeCollection.Data.CardImage.BuildUrl(modalCard.ImageSmallUrl, "high", "webp"))" alt="@modalCard.Name"
+                 onerror="this.onerror=null;this.src='@Placeholder'" />
 
             <div class="modal-info">
                 <span class="modal-name">@modalCard.Name</span>
@@ -138,6 +154,8 @@ else
 @code {
     [Parameter] public int SetId { get; set; }
 
+    private const string Placeholder = PokeCollection.Data.CardImage.Placeholder;
+
     private PokemonSet? set;
     private List<PokemonCard> cards = new();
 
@@ -154,6 +172,9 @@ else
     private CardFilter cardFilter = CardFilter.Todas;
     private string cardNameFilter = "";
 
+    private bool mastersetEnabled;
+    private Dictionary<int, List<CardVariant>> variantsByCard = new();
+
     private IEnumerable<PokemonCard> FilteredCards
     {
         get
@@ -165,7 +186,7 @@ else
                 _                     => cards.AsEnumerable()
             };
             if (!string.IsNullOrWhiteSpace(cardNameFilter))
-                filtered = filtered.Where(c => c.Name.Contains(cardNameFilter, StringComparison.OrdinalIgnoreCase));
+                filtered = filtered.Where(c => PokeCollection.Data.CardSearch.Matches(c.Name, c.Number, cardNameFilter));
             return filtered;
         }
     }
@@ -202,10 +223,7 @@ else
     protected override async Task OnInitializedAsync()
     {
         set = await Db.Sets.AsNoTracking().FirstOrDefaultAsync(x => x.Id == SetId);
-        cards = await Db.Cards.AsNoTracking()
-            .Where(x => x.PokemonSetId == SetId)
-            .OrderBy(x => x.Number)
-            .ToListAsync();
+        cards = await ReloadCards();
 
         _ = SyncInBackground();
     }
@@ -272,47 +290,83 @@ else
                 }
             }
 
-            var missing = await Db.Cards
-                .Where(x => x.PokemonSetId == SetId && (x.ImageSmallUrl == null || x.ImageSmallUrl == ""))
+            var setCards = await Db.Cards
+                .Where(x => x.PokemonSetId == SetId)
                 .ToListAsync();
 
-            if (missing.Count > 0)
+            var setCardIds = setCards.Select(c => c.Id).ToList();
+            var withVariants = new HashSet<int>(
+                await Db.CardVariants
+                    .Where(v => setCardIds.Contains(v.PokemonCardId))
+                    .Select(v => v.PokemonCardId)
+                    .Distinct()
+                    .ToListAsync()
+            );
+
+            var pending = setCards
+                .Where(c => string.IsNullOrWhiteSpace(c.ImageSmallUrl) || !withVariants.Contains(c.Id))
+                .OrderBy(CardNumberSortKey).ThenBy(c => c.Number)
+                .ToList();
+
+            const int foregroundBatch = 30;
+            int done = 0;
+            int total = pending.Count;
+            int pendingSave = 0;
+
+            foreach (var card in pending)
             {
-                int done = 0;
-                int total = missing.Count;
-                int pendingSave = 0;
-
-                foreach (var card in missing)
+                done++;
+                if (isLoading)
                 {
-                    done++;
-                    loadingStatus = $"Baixando imagens... {done}/{total}";
+                    loadingStatus = $"Carregando cartas... {done}/{Math.Min(total, foregroundBatch)}";
                     StateHasChanged();
-                    await Task.Yield();
-
-                    var (imgOk, _, details) = await Api.GetCardDetailsAsync(card.ExternalId);
-                    if (!imgOk || details is null) continue;
-
-                    var url = PokemonApiService.ExtractFinalImageUrlFromDetails(details);
-                    if (string.IsNullOrWhiteSpace(url)) continue;
-
-                    card.ImageSmallUrl = url;
-                    pendingSave++;
-
-                    if (pendingSave >= 10)
-                    {
-                        await Db.SaveChangesAsync();
-                        newImagesLoaded += pendingSave;
-                        pendingSave = 0;
-                        cards = await ReloadCards();
-                    }
                 }
+                await Task.Yield();
 
-                if (pendingSave > 0)
+                var (detOk, _, details) = await Api.GetCardDetailsAsync(card.ExternalId);
+                if (detOk && details is not null)
                 {
-                    await Db.SaveChangesAsync();
-                    newImagesLoaded += pendingSave;
-                    cards = await ReloadCards();
+                    if (string.IsNullOrWhiteSpace(card.ImageSmallUrl))
+                    {
+                        var url = PokemonApiService.ExtractFinalImageUrlFromDetails(details);
+                        if (string.IsNullOrWhiteSpace(url))
+                        {
+                            var (fbOk, _, fbUrl) = await Api.GetFallbackImageAsync(card.Name, card.Number, set?.TotalCards ?? 0);
+                            if (fbOk) url = fbUrl;
+                        }
+                        if (!string.IsNullOrWhiteSpace(url))
+                        {
+                            card.ImageSmallUrl = url;
+                            newImagesLoaded++;
+                        }
+                    }
+
+                    if (!withVariants.Contains(card.Id))
+                    {
+                        foreach (var type in PokemonApiService.ExtractVariantTypesFromDetails(details))
+                            Db.CardVariants.Add(new CardVariant { PokemonCardId = card.Id, Type = type, Owned = false });
+                    }
+                    pendingSave++;
                 }
+
+                var revealNow = isLoading && (done >= foregroundBatch || done == total);
+                if (revealNow || pendingSave >= 10)
+                {
+                    if (pendingSave > 0) await Db.SaveChangesAsync();
+                    pendingSave = 0;
+                    cards = await ReloadCards();
+                    await ReloadVariantsByCard();
+                    if (revealNow) isLoading = false;
+                    StateHasChanged();
+                }
+            }
+
+            if (pendingSave > 0)
+            {
+                await Db.SaveChangesAsync();
+                cards = await ReloadCards();
+                await ReloadVariantsByCard();
+                StateHasChanged();
             }
         }
         catch
@@ -328,20 +382,16 @@ else
         }
     }
 
-    private async Task<List<PokemonCard>> ReloadCards() =>
-        await Db.Cards.AsNoTracking()
-            .Where(x => x.PokemonSetId == SetId)
-            .OrderBy(x => x.Number)
-            .ToListAsync();
-
-    private static string BuildCardImageUrl(string? baseUrl, string quality = "low", string ext = "webp")
+    private async Task<List<PokemonCard>> ReloadCards()
     {
-        if (string.IsNullOrWhiteSpace(baseUrl)) return "";
-        var url = baseUrl.Trim();
-        if (url.EndsWith(".png") || url.EndsWith(".jpg") || url.EndsWith(".jpeg") || url.EndsWith(".webp"))
-            return url;
-        return $"{url.TrimEnd('/')}/{quality}.{ext}";
+        var list = await Db.Cards.AsNoTracking()
+            .Where(x => x.PokemonSetId == SetId)
+            .ToListAsync();
+        return list.OrderBy(CardNumberSortKey).ThenBy(x => x.Number).ToList();
     }
+
+    private static int CardNumberSortKey(PokemonCard c) =>
+        int.TryParse(c.Number, out var n) ? n : int.MaxValue;
 
     private async Task ToggleOwned(int cardId, bool owned)
     {
@@ -357,4 +407,51 @@ else
             cards[idx].AcquiredAt = card.AcquiredAt;
         }
     }
+
+    private async Task ToggleMasterset()
+    {
+        mastersetEnabled = !mastersetEnabled;
+        if (mastersetEnabled)
+            await ReloadVariantsByCard();
+    }
+
+    private async Task ReloadVariantsByCard()
+    {
+        var cardIds = cards.Select(c => c.Id).ToList();
+
+        var all = await Db.CardVariants.AsNoTracking()
+            .Where(v => cardIds.Contains(v.PokemonCardId))
+            .ToListAsync();
+
+        variantsByCard = all
+            .GroupBy(v => v.PokemonCardId)
+            .ToDictionary(
+                g => g.Key,
+                g => g.OrderBy(v => Array.IndexOf(PokemonApiService.KnownVariantTypes, v.Type)).ToList()
+            );
+    }
+
+    private async Task ToggleVariant(int variantId, bool owned)
+    {
+        var variant = await Db.CardVariants.FirstOrDefaultAsync(v => v.Id == variantId);
+        if (variant is null) return;
+        variant.Owned = owned;
+        await Db.SaveChangesAsync();
+
+        if (variantsByCard.TryGetValue(variant.PokemonCardId, out var list))
+        {
+            var item = list.FirstOrDefault(v => v.Id == variantId);
+            if (item is not null) item.Owned = owned;
+        }
+    }
+
+    private static string VariantLabel(string type) => type switch
+    {
+        "normal"       => "Normal",
+        "reverse"      => "Reverse",
+        "holo"         => "Holo",
+        "firstEdition" => "1ª Ed.",
+        "wPromo"       => "Promo",
+        _              => type
+    };
 }

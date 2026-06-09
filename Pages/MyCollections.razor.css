@@ -1,0 +1,167 @@
+.mycol-header {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.mycol-header h3 {
+    margin: 0;
+    font-weight: 700;
+    flex: 1;
+}
+
+.mycol-new-btn,
+.mycol-confirm-btn,
+.mycol-cancel-btn {
+    border: none;
+    border-radius: 99px;
+    padding: 7px 16px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s, opacity 0.15s;
+}
+
+.mycol-new-btn,
+.mycol-confirm-btn {
+    background: #e67e00;
+    color: #fff;
+}
+
+.mycol-new-btn:hover,
+.mycol-confirm-btn:hover {
+    background: #cf7100;
+}
+
+.mycol-confirm-btn:disabled {
+    opacity: 0.5;
+    cursor: default;
+}
+
+.mycol-cancel-btn {
+    background: rgba(0, 0, 0, 0.08);
+    color: inherit;
+}
+
+.mycol-cancel-btn:hover {
+    background: rgba(0, 0, 0, 0.14);
+}
+
+.mycol-create {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.mycol-error {
+    color: #d9534f;
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin: 0 0 12px;
+}
+
+.mycol-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 14px;
+}
+
+.mycol-card {
+    position: relative;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 16px;
+    transition: transform 0.15s, box-shadow 0.15s;
+}
+
+.mycol-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 22px rgba(0, 0, 0, 0.12);
+}
+
+.mycol-card-link {
+    display: block;
+    text-decoration: none;
+    color: inherit;
+}
+
+.mycol-card-name {
+    display: block;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-bottom: 14px;
+    padding-right: 28px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mycol-progress-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mycol-progress-track {
+    flex: 1;
+    height: 8px;
+    border-radius: 99px;
+    background: rgba(0, 0, 0, 0.1);
+    overflow: hidden;
+}
+
+.mycol-progress-fill {
+    height: 100%;
+    border-radius: 99px;
+    transition: width 0.3s;
+}
+
+.bar-green  { background: #28a745; }
+.bar-yellow { background: #e6b800; }
+.bar-red    { background: #d9534f; }
+
+.mycol-progress-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    opacity: 0.7;
+}
+
+.mycol-delete-btn {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: #d9534f;
+    cursor: pointer;
+    opacity: 0.6;
+    font-size: 14px;
+    transition: opacity 0.15s;
+}
+
+.mycol-delete-btn:hover {
+    opacity: 1;
+}
+
+html.dark .mycol-card {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+html.dark .mycol-cancel-btn {
+    background: rgba(255, 255, 255, 0.1);
+}
+
+html.dark .mycol-cancel-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+}
+
+html.dark .mycol-progress-track {
+    background: rgba(255, 255, 255, 0.12);
+}

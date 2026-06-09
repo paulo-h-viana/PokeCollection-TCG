@@ -1,0 +1,332 @@
+/* ── Header ── */
+.mcc-header {
+    margin-bottom: 8px;
+}
+
+.mcc-header-top {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 10px;
+}
+
+.mcc-header-top h3 {
+    margin: 0;
+    font-weight: 700;
+    flex: 1;
+}
+
+.mcc-back {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    text-decoration: none;
+    color: inherit;
+    background: rgba(0, 0, 0, 0.06);
+    transition: background 0.15s;
+}
+
+.mcc-back:hover {
+    background: rgba(0, 0, 0, 0.12);
+}
+
+.mcc-add-btn {
+    background: #e67e00;
+    border: none;
+    border-radius: 99px;
+    padding: 6px 15px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #fff;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s;
+}
+
+.mcc-add-btn:hover {
+    background: #cf7100;
+}
+
+.mcc-add-btn.active {
+    background: #28a745;
+}
+
+.mcc-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 8px;
+}
+
+/* ── Painel de adicionar ── */
+.mcc-add-panel {
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 12px;
+    padding: 14px;
+    margin-bottom: 16px;
+    animation: mcc-fade 0.2s ease;
+}
+
+@keyframes mcc-fade {
+    from { opacity: 0; transform: translateY(-4px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.mcc-add-search {
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 10px;
+}
+
+.mcc-add-status {
+    font-size: 0.82rem;
+    opacity: 0.65;
+    margin: 4px 0;
+}
+
+.mcc-results {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+    gap: 10px;
+    max-height: 360px;
+    overflow-y: auto;
+}
+
+.mcc-result {
+    position: relative;
+    border: 2px solid transparent;
+    border-radius: 8px;
+    padding: 6px;
+    text-align: center;
+    cursor: pointer;
+    transition: transform 0.12s, border-color 0.12s;
+}
+
+.mcc-result:hover {
+    transform: scale(1.04);
+    border-color: #e67e00;
+}
+
+.mcc-result.added {
+    border-color: #28a745;
+    opacity: 0.7;
+    cursor: default;
+}
+
+.mcc-result img {
+    width: 100%;
+    border-radius: 4px;
+}
+
+.mcc-result-name {
+    display: block;
+    font-size: 10px;
+    font-weight: 600;
+    margin-top: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mcc-result-meta {
+    display: block;
+    font-size: 9px;
+    color: #888;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mcc-result-add {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    font-size: 13px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.mcc-result.added .mcc-result-add {
+    background: #28a745;
+}
+
+/* ── Imagem + marca d'água ── */
+.card-img-wrap {
+    position: relative;
+    line-height: 0;
+}
+
+.card-watermark {
+    display: none;
+    position: absolute;
+    inset: 0;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 6px;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1.25;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: #fff;
+    background: rgba(0, 0, 0, 0.45);
+    border-radius: 4px;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.card-img-wrap.img-missing .card-watermark {
+    display: flex;
+}
+
+/* ── Grid de cartas ── */
+.cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    padding: 16px 0;
+}
+
+.card-item {
+    position: relative;
+    border: 3px solid transparent;
+    border-radius: 8px;
+    cursor: pointer;
+    text-align: center;
+    padding: 4px;
+    transition: transform 0.15s;
+}
+
+.card-item:hover {
+    transform: scale(1.05);
+}
+
+.card-item.owned {
+    border-color: #28a745;
+}
+
+.card-item img {
+    width: 100%;
+    border-radius: 4px;
+}
+
+.owned-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: #28a745;
+    color: white;
+    border-radius: 50%;
+    width: 22px;
+    height: 22px;
+    font-size: 13px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2;
+}
+
+.remove-btn {
+    position: absolute;
+    top: 5px;
+    left: 5px;
+    background: rgba(0, 0, 0, 0.55);
+    border: none;
+    border-radius: 50%;
+    color: white;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.15s, background 0.15s;
+    padding: 0;
+    font-size: 11px;
+    z-index: 2;
+}
+
+.card-item:hover .remove-btn {
+    opacity: 1;
+}
+
+.remove-btn:hover {
+    background: #d9534f;
+}
+
+.no-image {
+    height: 80px;
+    background: #eee;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    color: #666;
+    padding: 4px;
+}
+
+.card-info {
+    margin-top: 4px;
+}
+
+.card-name {
+    display: block;
+    font-size: 11px;
+    font-weight: 600;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.card-meta {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.card-number {
+    font-size: 10px;
+    color: #888;
+}
+
+.card-info .card-symbol {
+    width: auto;
+    height: 13px;
+    border-radius: 0;
+}
+
+/* ── Dark mode ── */
+html.dark .mcc-back {
+    background: rgba(255, 255, 255, 0.08);
+}
+
+html.dark .mcc-back:hover {
+    background: rgba(255, 255, 255, 0.14);
+}
+
+html.dark .mcc-add-panel {
+    border-color: rgba(255, 255, 255, 0.12);
+}
+
+html.dark .no-image {
+    background: #2a2a4a;
+    color: #aaa;
+}

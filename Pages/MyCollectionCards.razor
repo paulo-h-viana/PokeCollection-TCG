@@ -1,0 +1,252 @@
+@page "/my-collections/{Id:int}"
+@using PokeCollection.Data
+@using PokeCollection.Data.Models
+@using PokeCollection.Data.Services
+@inject UserCollectionService Collections
+@inject PokemonApiService Api
+@inject NavigationManager Nav
+
+@if (collection is null)
+{
+    <p>Carregando...</p>
+}
+else
+{
+    <div class="mcc-header">
+        <div class="mcc-header-top">
+            <a class="mcc-back" href="/my-collections" title="Voltar"><span class="oi oi-arrow-left"></span></a>
+            <h3>@collection.Name</h3>
+            <button class="mcc-add-btn @(adding ? "active" : "")" @onclick="ToggleAdd">
+                <span class="oi oi-plus"></span> Adicionar cartas
+            </button>
+        </div>
+        <div class="mcc-filters">
+            <input class="search-input" placeholder="Buscar por nome ou nº (ex: 120/180)" style="min-width:180px"
+                   @oninput="e => cardNameFilter = e.Value?.ToString() ?? string.Empty" />
+        </div>
+    </div>
+
+    @if (adding)
+    {
+        <div class="mcc-add-panel">
+            <input class="search-input mcc-add-search" placeholder="Buscar por nome ou número da carta..."
+                   @oninput="OnSearchInput" />
+
+            @if (searching)
+            {
+                <p class="mcc-add-status">Buscando...</p>
+            }
+            else if (!string.IsNullOrWhiteSpace(searchMessage))
+            {
+                <p class="mcc-add-status">@searchMessage</p>
+            }
+
+            @if (results.Count > 0)
+            {
+                <div class="mcc-results">
+                    @foreach (var r in results)
+                    {
+                        var added = addedIds.Contains(r.id);
+                        var rimg = CardImage.BuildUrl(PokemonApiService.ExtractImageFromSearchItem(r), "low", "webp");
+                        var rsetName = SetNameOf(r.id);
+                        <div class="mcc-result @(added ? "added" : "")" @onclick="() => AddCard(r)">
+                            <div class="card-img-wrap @(string.IsNullOrWhiteSpace(rimg) ? "img-missing" : "")">
+                                <img src="@(string.IsNullOrWhiteSpace(rimg) ? Placeholder : rimg)"
+                                     onerror="this.onerror=null;this.src='@Placeholder';this.closest('.card-img-wrap')?.classList.add('img-missing')" alt="@r.name" />
+                                <span class="card-watermark">Imagem não localizada</span>
+                            </div>
+                            <span class="mcc-result-name">@r.name</span>
+                            <span class="mcc-result-meta">#@r.localId@(string.IsNullOrWhiteSpace(rsetName) ? "" : " · " + rsetName)</span>
+                            <span class="mcc-result-add">@(added ? "✓" : "+")</span>
+                        </div>
+                    }
+                </div>
+            }
+        </div>
+    }
+
+    @if (!FilteredCards.Any())
+    {
+        <p>@(cards.Count == 0 ? "Nenhuma carta nesta coleção ainda. Use \"Adicionar cartas\"." : "Nenhuma carta encontrada.")</p>
+    }
+    else
+    {
+        <div class="cards-grid">
+            @foreach (var c in FilteredCards)
+            {
+                var cimg = CardImage.BuildUrl(c.ImageSmallUrl, "low", "webp");
+                var sym = SymbolFor(c.ExternalId);
+                <div class="card-item @(c.Owned ? "owned" : "")"
+                     @onclick="() => ToggleOwned(c.Id, !c.Owned)"
+                     title="@c.Name">
+
+                    @if (c.Owned)
+                    {
+                        <span class="owned-badge">✓</span>
+                    }
+
+                    <button class="remove-btn" title="Remover da coleção"
+                            @onclick="() => RemoveCard(c.Id)" @onclick:stopPropagation="true">
+                        <span class="oi oi-x"></span>
+                    </button>
+
+                    <div class="card-img-wrap @(string.IsNullOrWhiteSpace(cimg) ? "img-missing" : "")">
+                        <img class="card-img" src="@(string.IsNullOrWhiteSpace(cimg) ? Placeholder : cimg)"
+                             onerror="this.onerror=null;this.src='@Placeholder';this.closest('.card-img-wrap')?.classList.add('img-missing')" alt="@c.Name" />
+                        <span class="card-watermark">Imagem não localizada</span>
+                    </div>
+
+                    <div class="card-info">
+                        <span class="card-name">@c.Name</span>
+                        <span class="card-meta">
+                            <span class="card-number">#@c.Number</span>
+                            @if (!string.IsNullOrWhiteSpace(sym))
+                            {
+                                <img class="card-symbol" src="@(sym).png" onerror="this.style.display='none'" alt="" />
+                            }
+                        </span>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+}
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private const string Placeholder = CardImage.Placeholder;
+
+    private UserCollection? collection;
+    private List<UserCollectionCard> cards = new();
+    private HashSet<string> addedIds = new();
+    private Dictionary<string, string> symbolsBySet = new();
+    private Dictionary<string, string> setNames = new();
+    private Dictionary<string, int> setTotals = new();
+
+    private string cardNameFilter = "";
+
+    private bool adding;
+    private string searchQuery = "";
+    private int searchToken;
+    private bool searching;
+    private List<PokemonApiService.CardSearchItemDto> results = new();
+    private string? searchMessage;
+
+    private IEnumerable<UserCollectionCard> FilteredCards =>
+        string.IsNullOrWhiteSpace(cardNameFilter)
+            ? cards
+            : cards.Where(c => CardSearch.Matches(c.Name, c.Number, cardNameFilter));
+
+    protected override async Task OnInitializedAsync()
+    {
+        collection = await Collections.GetAsync(Id);
+        if (collection is null)
+        {
+            Nav.NavigateTo("/my-collections");
+            return;
+        }
+        setNames = await Collections.GetSetNamesAsync();
+        setTotals = await Collections.GetSetTotalsAsync();
+        await ReloadCards();
+
+        _ = BackfillImages();
+    }
+
+    private async Task BackfillImages()
+    {
+        var (ok, _, updated) = await Collections.BackfillImagesAsync(Id);
+        if (ok && updated > 0)
+        {
+            await ReloadCards();
+            StateHasChanged();
+        }
+    }
+
+    private async Task ReloadCards()
+    {
+        cards = await Collections.GetCardsAsync(Id);
+        addedIds = new HashSet<string>(cards.Select(c => c.ExternalId));
+        symbolsBySet = await Collections.GetSymbolsForAsync(cards.Select(c => c.ExternalId));
+    }
+
+    private string? SymbolFor(string cardExternalId) =>
+        symbolsBySet.GetValueOrDefault(UserCollectionService.SetExternalIdOf(cardExternalId));
+
+    private string SetNameOf(string cardExternalId) =>
+        setNames.GetValueOrDefault(UserCollectionService.SetExternalIdOf(cardExternalId), "");
+
+    private void ToggleAdd()
+    {
+        adding = !adding;
+        results = new();
+        searchMessage = null;
+        searchQuery = "";
+    }
+
+    private async Task OnSearchInput(ChangeEventArgs e)
+    {
+        searchQuery = e.Value?.ToString() ?? "";
+        var token = ++searchToken;
+        await Task.Delay(350);
+        if (token != searchToken) return;
+        await RunSearch();
+    }
+
+    private async Task RunSearch()
+    {
+        var q = searchQuery.Trim();
+        if (q.Length < 2 && !CardSearch.IsNumberQuery(q, out _))
+        {
+            results = new();
+            searchMessage = null;
+            StateHasChanged();
+            return;
+        }
+
+        searching = true;
+        StateHasChanged();
+
+        var (ok, msg, found) = await Api.SearchCardsAsync(searchQuery);
+
+        if (ok && CardSearch.IsNumberQuery(q, out _) && CardSearch.TryGetTotal(q, out var total))
+            found = found
+                .Where(c => setTotals.GetValueOrDefault(UserCollectionService.SetExternalIdOf(c.id)) == total)
+                .ToList();
+
+        results = ok ? found : new();
+        searchMessage = ok
+            ? (found.Count == 0 ? "Nenhuma carta encontrada." : null)
+            : "Erro na busca. Verifique a conexão.";
+
+        searching = false;
+        StateHasChanged();
+    }
+
+    private async Task AddCard(PokemonApiService.CardSearchItemDto item)
+    {
+        if (string.IsNullOrWhiteSpace(item.id) || addedIds.Contains(item.id)) return;
+
+        var (ok, _) = await Collections.AddCardAsync(Id, item);
+        if (ok) await ReloadCards();
+    }
+
+    private async Task RemoveCard(int cardId)
+    {
+        var (ok, _) = await Collections.RemoveCardAsync(cardId);
+        if (ok) await ReloadCards();
+    }
+
+    private async Task ToggleOwned(int cardId, bool owned)
+    {
+        var (ok, _, acquiredAt) = await Collections.SetOwnedAsync(cardId, owned);
+        if (!ok) return;
+
+        var idx = cards.FindIndex(x => x.Id == cardId);
+        if (idx >= 0)
+        {
+            cards[idx].Owned = owned;
+            cards[idx].AcquiredAt = acquiredAt;
+        }
+    }
+}

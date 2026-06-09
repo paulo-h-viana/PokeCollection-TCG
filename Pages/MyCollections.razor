@@ -1,0 +1,117 @@
+@page "/my-collections"
+@using PokeCollection.Data.Models
+@using PokeCollection.Data.Services
+@inject UserCollectionService Collections
+@inject NavigationManager Nav
+@inject IJSRuntime JS
+
+<div class="mycol-header">
+    <h3>Minhas Coleções</h3>
+    <button class="mycol-new-btn" @onclick="ToggleCreate">
+        <span class="oi oi-plus"></span> Nova coleção
+    </button>
+</div>
+
+@if (creating)
+{
+    <div class="mycol-create">
+        <input class="search-input" placeholder="Nome da coleção..." @bind="newName" @bind:event="oninput"
+               @onkeydown="OnCreateKeyDown" />
+        <button class="mycol-confirm-btn" @onclick="CreateCollection" disabled="@string.IsNullOrWhiteSpace(newName)">Criar</button>
+        <button class="mycol-cancel-btn" @onclick="ToggleCreate">Cancelar</button>
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(errorMessage))
+{
+    <p class="mycol-error">⚠️ @errorMessage</p>
+}
+
+@if (collections is null)
+{
+    <p>Carregando...</p>
+}
+else if (collections.Count == 0)
+{
+    <p>Você ainda não criou nenhuma coleção. Clique em "Nova coleção" para começar.</p>
+}
+else
+{
+    <div class="mycol-grid">
+        @foreach (var c in collections)
+        {
+            var (total, owned) = stats.GetValueOrDefault(c.Id, (0, 0));
+            var pct = total > 0 ? (int)((double)owned / total * 100) : 0;
+            var barClass = pct >= 75 ? "bar-green" : pct >= 25 ? "bar-yellow" : "bar-red";
+
+            <div class="mycol-card">
+                <a class="mycol-card-link" href="/my-collections/@c.Id">
+                    <span class="mycol-card-name">@c.Name</span>
+                    <div class="mycol-progress-wrap">
+                        <div class="mycol-progress-track">
+                            <div class="mycol-progress-fill @barClass" style="width: @pct%"></div>
+                        </div>
+                        <span class="mycol-progress-label">@owned/@total</span>
+                    </div>
+                </a>
+                <button class="mycol-delete-btn" title="Excluir coleção" @onclick="() => DeleteCollection(c.Id)">
+                    <span class="oi oi-trash"></span>
+                </button>
+            </div>
+        }
+    </div>
+}
+
+@code {
+    private List<UserCollection>? collections;
+    private Dictionary<int, (int total, int owned)> stats = new();
+    private bool creating;
+    private string newName = "";
+    private string? errorMessage;
+
+    protected override async Task OnInitializedAsync() => await Load();
+
+    private async Task Load()
+    {
+        collections = await Collections.GetCollectionsAsync();
+        stats = await Collections.GetStatsAsync();
+    }
+
+    private void ToggleCreate()
+    {
+        creating = !creating;
+        newName = "";
+        errorMessage = null;
+    }
+
+    private async Task OnCreateKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await CreateCollection();
+    }
+
+    private async Task CreateCollection()
+    {
+        var (ok, message, created) = await Collections.CreateAsync(newName);
+        if (!ok || created is null)
+        {
+            errorMessage = message;
+            return;
+        }
+        Nav.NavigateTo($"/my-collections/{created.Id}");
+    }
+
+    private async Task DeleteCollection(int id)
+    {
+        var confirmed = await JS.InvokeAsync<bool>("confirm", "Excluir esta coleção e todas as cartas dela?");
+        if (!confirmed) return;
+
+        var (ok, message) = await Collections.DeleteAsync(id);
+        if (!ok)
+        {
+            errorMessage = message;
+            return;
+        }
+        await Load();
+    }
+}
