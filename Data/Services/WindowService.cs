@@ -32,6 +32,21 @@ public class WindowService
         return result;
     }
 
+    public string? ShowFolderBrowserDialog(string? initialPath = null)
+    {
+        if (_mainForm is null) return null;
+        string? result = null;
+        _mainForm.Invoke(() =>
+        {
+            using var dialog = new FolderBrowserDialog();
+            if (!string.IsNullOrWhiteSpace(initialPath) && Directory.Exists(initialPath))
+                dialog.SelectedPath = initialPath;
+            if (dialog.ShowDialog() == DialogResult.OK)
+                result = dialog.SelectedPath;
+        });
+        return result;
+    }
+
     public void RestartApplication()
     {
         _mainForm?.Invoke(Application.Restart);

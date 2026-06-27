@@ -7,15 +7,17 @@ public class MainForm : Form
     private readonly WebView2 _webView;
     private readonly string _url;
     private readonly SplashScreen _splash;
+    private readonly BackupService _backupService;
     private readonly System.Windows.Forms.Timer _fallbackTimer;
     private bool _revealed;
 
-    public MainForm(string url, WindowService windowService, SplashScreen splash)
+    public MainForm(string url, WindowService windowService, BackupService backupService, SplashScreen splash)
     {
         windowService.RegisterMainForm(this);
 
         _url = url;
         _splash = splash;
+        _backupService = backupService;
         Text = "PokeCollection TCG";
         Width = 1400;
         Height = 900;
@@ -42,6 +44,18 @@ public class MainForm : Form
         _fallbackTimer.Tick += (_, _) => Reveal();
 
         Load += OnLoad;
+        FormClosing += OnFormClosing;
+    }
+
+    private void OnFormClosing(object? sender, FormClosingEventArgs e)
+    {
+        try
+        {
+            _backupService.RunAutoBackup();
+        }
+        catch
+        {
+        }
     }
 
     private async void OnLoad(object? sender, EventArgs e)

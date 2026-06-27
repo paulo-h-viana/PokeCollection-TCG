@@ -28,6 +28,7 @@ builder.Services.AddHttpClient<PokemonApiService>();
 builder.Services.AddScoped<UserCollectionService>();
 builder.Services.AddSingleton<WindowService>();
 builder.Services.AddSingleton<UpdateService>();
+builder.Services.AddSingleton(new BackupService(dbPath, appDataFolder));
 
 builder.WebHost.UseUrls("http://localhost:5123");
 
@@ -108,10 +109,11 @@ using (var scope = app.Services.CreateScope())
 await app.StartAsync();
 
 var windowService = app.Services.GetRequiredService<WindowService>();
+var backupService = app.Services.GetRequiredService<BackupService>();
 
 var uiThread = new Thread(() =>
 {
-    Application.Run(new MainForm("http://localhost:5123", windowService, splash));
+    Application.Run(new MainForm("http://localhost:5123", windowService, backupService, splash));
 });
 uiThread.SetApartmentState(ApartmentState.STA);
 uiThread.Start();
