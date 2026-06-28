@@ -210,7 +210,7 @@ else
             return;
         }
 
-        var total = cards.Count;
+        var total = set?.TotalCards is int t and > 0 ? t : cards.Count;
         missingLog = string.Join("\n", missing.Select(c => $"1 {c.Name} ({c.Number}/{total}) [QUALIDADE=NM] [IDIOMA=PT]"));
     }
 
