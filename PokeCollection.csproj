@@ -7,6 +7,14 @@
     <UseWindowsForms>true</UseWindowsForms>
     <OutputType>WinExe</OutputType>
     <ApplicationIcon>icon_exe.ico</ApplicationIcon>
+
+    <Product>PokeCollection</Product>
+    <AssemblyTitle>PokeCollection</AssemblyTitle>
+    <Authors>Paulo Henrique Viana da Silva</Authors>
+    <Company>Paulo Henrique Viana da Silva</Company>
+    <Copyright>© 2026 Paulo Henrique Viana da Silva. Todos os direitos reservados.</Copyright>
+    <Description>Gerenciador de coleção de cartas Pokémon TCG.</Description>
+    <PackageProjectUrl>https://github.com/paulo-h-viana/PokeCollection-TCG</PackageProjectUrl>
   </PropertyGroup>
 
   <ItemGroup>
