@@ -1,0 +1,67 @@
+@using PokeCollection.Data.Services
+@inject ChangelogService Changelog
+@inject IJSRuntime JS
+
+@if (_entry is not null && _visible)
+{
+    <div class="whatsnew-overlay" @onclick="Close">
+        <div class="whatsnew-card" @onclick:stopPropagation="true">
+            <div class="whatsnew-header">
+                <span class="whatsnew-badge">✨ Novidades</span>
+                <span class="whatsnew-version">v@_entry.Version</span>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(_entry.Title))
+            {
+                <h3 class="whatsnew-title">@_entry.Title</h3>
+            }
+
+            <ul class="whatsnew-list">
+                @foreach (var item in _entry.Items)
+                {
+                    <li>@item</li>
+                }
+            </ul>
+
+            <button class="whatsnew-close" @onclick="Close">Entendi</button>
+        </div>
+    </div>
+}
+
+@code {
+    private const string StorageKey = "lastSeenVersion";
+
+    private ChangelogEntry? _entry;
+    private bool _visible;
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (!firstRender) return;
+
+        var current = Changelog.CurrentVersion;
+        var lastSeen = await JS.InvokeAsync<string?>("localStorage.getItem", StorageKey);
+
+        if (string.IsNullOrEmpty(lastSeen) || lastSeen == current)
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", StorageKey, current);
+            return;
+        }
+
+        var entry = Changelog.GetEntry(current);
+        if (entry is null)
+        {
+            await JS.InvokeVoidAsync("localStorage.setItem", StorageKey, current);
+            return;
+        }
+
+        _entry = entry;
+        _visible = true;
+        StateHasChanged();
+    }
+
+    private async Task Close()
+    {
+        _visible = false;
+        await JS.InvokeVoidAsync("localStorage.setItem", StorageKey, Changelog.CurrentVersion);
+    }
+}

@@ -46,6 +46,14 @@ if (-not (Test-Path $gh)) { throw "gh CLI nao encontrado em PATH nem em '$gh'." 
 $tok = (& $gh auth token).Trim()
 if ([string]::IsNullOrWhiteSpace($tok)) { throw 'Nao foi possivel obter o token do gh (gh auth login?).' }
 
+$changelogPath = Join-Path $root 'changelog.json'
+if (Test-Path $changelogPath) {
+    $changelog = Get-Content $changelogPath -Raw | ConvertFrom-Json
+    if (-not ($changelog.PSObject.Properties.Name -contains $Version)) {
+        Write-Warning "changelog.json nao tem entrada para a versao $Version. O modal 'O que ha de novo' nao aparecera para esta versao. Adicione a entrada antes de publicar."
+    }
+}
+
 Write-Host "Publicando PokeCollection v$Version" -ForegroundColor Green
 
 Invoke-Step 'Limpando publish/' {

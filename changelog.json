@@ -1,0 +1,31 @@
+{
+  "1.5.3": {
+    "date": "2026-06-28",
+    "title": "O que há de novo",
+    "items": [
+      "Agora, a cada atualização, o aplicativo mostra um resumo do que mudou na nova versão."
+    ]
+  },
+  "1.5.2": {
+    "date": "2026-06-28",
+    "title": "Identidade e autoria",
+    "items": [
+      "Autoria e licença do aplicativo reforçadas internamente.",
+      "Versão do aplicativo agora identificada corretamente nas propriedades do executável."
+    ]
+  },
+  "1.5.1": {
+    "date": "2026-06-28",
+    "title": "Cartas faltantes",
+    "items": [
+      "A relação de cartas faltantes agora usa o total oficial da expansão (ex.: 12/132), para o sistema da Liga Pokémon localizar as cartas corretamente."
+    ]
+  },
+  "1.5.0": {
+    "date": "2026-06-27",
+    "title": "Backup automático",
+    "items": [
+      "Backup automático do banco de dados para uma pasta sincronizada (Google Drive)."
+    ]
+  }
+}

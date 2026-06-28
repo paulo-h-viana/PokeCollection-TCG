@@ -28,6 +28,7 @@ builder.Services.AddHttpClient<PokemonApiService>();
 builder.Services.AddScoped<UserCollectionService>();
 builder.Services.AddSingleton<WindowService>();
 builder.Services.AddSingleton<UpdateService>();
+builder.Services.AddSingleton<ChangelogService>();
 builder.Services.AddSingleton(new BackupService(dbPath, appDataFolder));
 
 builder.WebHost.UseUrls("http://localhost:5123");
